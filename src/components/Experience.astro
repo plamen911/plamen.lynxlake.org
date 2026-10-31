@@ -1,0 +1,84 @@
+---
+import type { Role } from '../data/types';
+
+interface Props {
+  roles: Role[];
+}
+
+const { roles } = Astro.props;
+---
+<section id="experience" class="section wrap" aria-labelledby="experience-title">
+  <h2 id="experience-title" class="section-title">Long engagements, systems owned end to end</h2>
+  <ol class="timeline">
+    {roles.map((role) => (
+      <li>
+        <article id={`role-${role.id}`} aria-labelledby={`role-${role.id}-title`}>
+          <p class="period">{role.period}</p>
+          <div class="detail">
+            <h3 id={`role-${role.id}-title`}>{role.org}</h3>
+            <p class="title">{role.title}</p>
+            <p class="summary">{role.summary}</p>
+            <ul class="highlights">
+              {role.highlights.map((h) => <li>{h}</li>)}
+            </ul>
+          </div>
+        </article>
+      </li>
+    ))}
+  </ol>
+</section>
+
+<style>
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  article {
+    display: grid;
+    gap: 0.5rem 3rem;
+    padding-block: clamp(1.75rem, 1.25rem + 1.5vw, 2.5rem);
+    border-top: 1px solid var(--line);
+  }
+
+  @media (min-width: 768px) {
+    article {
+      grid-template-columns: 11rem minmax(0, 1fr);
+    }
+  }
+
+  .period {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    font-size: var(--step--1);
+    font-weight: 600;
+    padding-top: 0.3rem;
+  }
+
+  h3 {
+    font-size: var(--step-2);
+  }
+
+  .title {
+    margin-top: 0.3rem;
+    color: var(--muted);
+  }
+
+  .summary {
+    margin-top: 1rem;
+    max-width: var(--measure);
+  }
+
+  .highlights {
+    margin: 1rem 0 0;
+    padding-left: 1.1rem;
+    max-width: var(--measure);
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .highlights li::marker {
+    color: var(--accent);
+  }
+</style>

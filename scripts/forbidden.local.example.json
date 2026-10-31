@@ -1,0 +1,11 @@
+[
+  { "value": "+359 888 000 000", "why": "phone number" },
+  { "value": "123456789", "why": "company registration number" },
+  { "value": "Acme Widgets Ltd", "why": "private fact (local list)" },
+  { "value": "Institute of Examples", "why": "private fact (local list)" },
+  { "value": "Age: 41", "why": "age" },
+  { "value": "€50", "why": "rate" },
+  { "value": "example-private-repo", "why": "private fact (local list)" },
+  { "pattern": "lighthouse[\\s-]*keep(?:er|ing)", "flags": "iu", "why": "private fact (local list)" },
+  { "pattern": "\\bAcme\\s+Widgets\\b", "flags": "i", "why": "private fact (local list)" }
+]

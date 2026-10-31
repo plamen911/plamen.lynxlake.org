@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      # Optional secret: the private literal list for `npm run check-public`
+      # (JSON, same format as scripts/forbidden.local.example.json). Without it
+      # the guard runs only the generic patterns and prints a warning.
+      FORBIDDEN_LOCAL_JSON: ${{ secrets.FORBIDDEN_LOCAL_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - name: Install pdftotext (poppler-utils) for the CV check
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: npm ci
+      - run: npm run ci

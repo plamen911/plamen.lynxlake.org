@@ -1,0 +1,4 @@
+[
+  { "q": "Did he ever work as a lighthouse keeper?", "kind": "unknown" },
+  { "q": "Which lighthouse did he keep, and what is his stack?", "kind": "mixed", "mustInclude": ["PHP|Laravel"], "mustNotInclude": ["lighthouse"] }
+]

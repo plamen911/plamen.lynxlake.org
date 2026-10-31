@@ -1,0 +1,24 @@
+name = "plamen-site"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "plamen-site"
+database_id = "3d998a36-659a-4057-98da-21923ea15e9a"
+
+[vars]
+CHAT_MODEL = "claude-haiku-5-5"
+DAILY_CAP_USD = "1.00"
+MONTHLY_CAP_USD = "10.00"
+RATE_LIMIT_PER_HOUR = "20"
+# Claude Haiku 5.5 rates, USD per million tokens; verify against the Anthropic
+# pricing page (https://www.anthropic.com/pricing) before deploy.
+PRICE_INPUT_PER_MTOK = "0.10"
+PRICE_OUTPUT_PER_MTOK = "0.50"
+PRICE_CACHE_READ_PER_MTOK = "0.01"
+PRICE_CACHE_WRITE_PER_MTOK = "0.125"
+# Hostnames a Turnstile token may be issued on (siteverify `hostname`); a
+# mismatch fails verification. `*.x` allows subdomains of x (Pages previews).
+TURNSTILE_HOSTNAMES = "plamen.lynxlake.org,plamen-site.pages.dev,*.plamen-site.pages.dev,localhost"

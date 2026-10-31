@@ -1,0 +1,174 @@
+---
+interface Props {
+  starters: readonly string[];
+  /** Contact email for the chat's notice and fallback (profile.email). */
+  email: string;
+}
+
+const { starters, email } = Astro.props;
+---
+<div id="chat-root" data-starters={JSON.stringify(starters)} data-email={email}>
+  <slot />
+</div>
+
+<script>
+  import { mountChat } from '../chat/client/chat';
+
+  // Without JS, or if mounting fails, the static fallback in #chat-root stays.
+  const root = document.getElementById('chat-root');
+  if (root) {
+    try {
+      mountChat(root, { endpoint: '/api/chat', siteKey: import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '' });
+    } catch (error) {
+      console.error('chat failed to start', error);
+    }
+  }
+</script>
+
+<style is:global>
+  /* The chat's DOM is built by script, so these rules are global, scoped by #chat-root. */
+  #chat-root .chat-title {
+    font-family: var(--serif);
+    font-size: var(--step-1);
+    font-weight: 700;
+  }
+
+  #chat-root .chat-log {
+    display: grid;
+    gap: 0.75rem;
+    max-height: min(26rem, 55vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin-top: 1.25rem;
+  }
+
+  #chat-root .chat-log:empty {
+    margin-top: 0;
+  }
+
+  #chat-root .chat-msg {
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    max-width: 92%;
+  }
+
+  #chat-root .chat-msg.user {
+    justify-self: end;
+    background: var(--hero-line);
+    border-radius: 8px 8px 2px 8px;
+  }
+
+  #chat-root .chat-msg.assistant {
+    justify-self: start;
+    border: 1px solid var(--hero-line);
+    border-radius: 8px 8px 8px 2px;
+  }
+
+  #chat-root .chat-msg.is-error {
+    color: var(--hero-muted);
+  }
+
+  #chat-root .chat-msg a {
+    color: var(--hero-accent);
+  }
+
+  #chat-root .chat-msg.is-pending::after {
+    content: '…';
+    display: inline-block;
+    color: var(--hero-muted);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    #chat-root .chat-msg.is-pending::after {
+      animation: chat-pulse 1.2s ease-in-out infinite;
+    }
+  }
+
+  @keyframes chat-pulse {
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  #chat-root .chat-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+  }
+
+  #chat-root .chat-starter {
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--hero-line);
+    border-radius: 8px 8px 8px 2px;
+    background: transparent;
+    color: var(--hero-text);
+    font: inherit;
+    font-size: var(--step--1);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  #chat-root .chat-starter:hover:not(:disabled) {
+    border-color: var(--hero-accent);
+  }
+
+  #chat-root .chat-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  #chat-root .chat-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--hero-line);
+    border-radius: 6px;
+    background: var(--hero-bg);
+    color: var(--hero-text);
+    font: inherit;
+  }
+
+  #chat-root .chat-input::placeholder {
+    color: var(--hero-muted);
+    opacity: 1;
+  }
+
+  #chat-root .chat-send {
+    flex: none;
+    padding: 0.6rem 1.15rem;
+    border: 1px solid var(--hero-text);
+    border-radius: 6px;
+    background: var(--hero-text);
+    color: var(--hero-bg);
+    font: inherit;
+    font-size: var(--step--1);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  #chat-root .chat-send:hover:not(:disabled) {
+    background: #ffffff;
+  }
+
+  #chat-root button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  #chat-root .chat-turnstile:not(:empty) {
+    margin-top: 0.75rem;
+  }
+
+  #chat-root .chat-notice {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--hero-line);
+    color: var(--hero-muted);
+    font-size: var(--step--1);
+  }
+</style>

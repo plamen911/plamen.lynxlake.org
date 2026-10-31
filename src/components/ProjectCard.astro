@@ -1,0 +1,123 @@
+---
+import type { Project } from '../data/types';
+
+interface Props {
+  project: Project;
+}
+
+const { project } = Astro.props;
+const parts = [
+  { term: 'Problem', text: project.problem },
+  { term: 'Approach', text: project.approach },
+  { term: 'Result', text: project.result },
+];
+const headingId = `project-${project.id}-title`;
+// The copy marks commands with backticks; show those as inline code.
+const segments = (text: string) => text.split('`').map((value, i) => ({ value, code: i % 2 === 1 }));
+---
+<article class="project" id={`project-${project.id}`} aria-labelledby={headingId}>
+  <div class="head">
+    <h3 id={headingId}>{project.title}</h3>
+    <ul class="tags" aria-label="Technologies">
+      {project.tags.map((tag) => <li>{tag}</li>)}
+    </ul>
+    {project.link && (
+      <p class="link"><a href={project.link.href} rel="noopener">{project.link.label}</a></p>
+    )}
+  </div>
+  <dl class="body">
+    {parts.map(({ term, text }) => (
+      <div class:list={['part', term.toLowerCase()]}>
+        <dt>{term}</dt>
+        <dd>{segments(text).map(({ value, code }) => (code ? <code>{value}</code> : value))}</dd>
+      </div>
+    ))}
+  </dl>
+</article>
+
+<style>
+  .project {
+    display: grid;
+    gap: 1.5rem 3rem;
+    padding-block: clamp(2rem, 1.5rem + 2vw, 3rem);
+    border-top: 1px solid var(--line);
+  }
+
+  @media (min-width: 900px) {
+    .project {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    }
+
+    .head {
+      position: sticky;
+      top: 2rem;
+      align-self: start;
+    }
+  }
+
+  h3 {
+    font-size: var(--step-2);
+    max-width: 22ch;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    font-size: var(--step--1);
+  }
+
+  .tags li {
+    padding: 0.15rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--muted);
+  }
+
+  .link {
+    margin-top: 1rem;
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+
+  .body {
+    display: grid;
+    gap: 1.25rem;
+    margin: 0;
+    max-width: var(--measure);
+  }
+
+  dt {
+    font-weight: 700;
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0.2rem 0 0;
+  }
+
+  code {
+    font-size: 0.9em;
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .result {
+    padding: 1rem 1.25rem;
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 6px 6px 0;
+  }
+
+  .result dt {
+    color: var(--text);
+  }
+</style>

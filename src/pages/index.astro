@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import Projects from '../components/Projects.astro';
+import AiWorkflow from '../components/AiWorkflow.astro';
+import Experience from '../components/Experience.astro';
+import Stack from '../components/Stack.astro';
+import Contact from '../components/Contact.astro';
+import Footer from '../components/Footer.astro';
+import { profile } from '../data/profile';
+
+const title = 'Plamen Markov — Backend & AI Engineer';
+const description = `${profile.name}: ${profile.tagline}. ${profile.availability}.`;
+---
+<Base title={title} description={description}>
+  <Hero profile={profile} />
+  <main id="main" tabindex="-1">
+    <Projects projects={profile.projects} />
+    <AiWorkflow points={profile.aiWorkflow} />
+    <Experience roles={profile.experience} />
+    <Stack groups={profile.stack} />
+    <Contact profile={profile} />
+  </main>
+  <Footer name={profile.name} tagline={profile.tagline} />
+</Base>

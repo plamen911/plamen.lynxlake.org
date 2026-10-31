@@ -1,0 +1,16 @@
+# Cloudflare Pages response headers.
+# CSP: the built pages have no inline scripts or styles (Astro emits external
+# /_astro/ files; build.inlineStylesheets is 'never'), so neither needs
+# 'unsafe-inline'. Turnstile loads from challenges.cloudflare.com (script and
+# iframe); Cloudflare Web Analytics loads its beacon from
+# static.cloudflareinsights.com and reports to cloudflareinsights.com.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  X-Content-Type-Options: nosniff
+
+# The CV PDF opens in the browser's built-in viewer, which a page CSP can block.
+/cv/*
+  ! Content-Security-Policy

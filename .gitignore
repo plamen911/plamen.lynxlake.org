@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.dev.vars
+.superpowers/
+.DS_Store
+.remember/
+scripts/forbidden.local.json
+docs/superpowers/
+# Private local lists (topic patterns, sensitive eval cases); *.example.json are the tracked templates.
+scripts/*.local.json
+scripts/*.local.ts
+scripts/*.local.*
+!scripts/*.local.example.json
+.env
+.env.local
+.env.*.local
+.idea/

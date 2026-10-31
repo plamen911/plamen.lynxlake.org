@@ -1,0 +1,11 @@
+# Copy to .dev.vars (gitignored) for `npm run preview`. Placeholder values only.
+# In production these are Pages secrets / variables.
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+TURNSTILE_SECRET=your-turnstile-secret-key
+SESSION_SECRET=a-long-random-string
+# The model prices (PRICE_*_PER_MTOK) and TURNSTILE_HOSTNAMES come from [vars] in
+# wrangler.toml; only set them here to override locally.
+# Build-time, not read from this file: PUBLIC_TURNSTILE_SITE_KEY and
+# PUBLIC_CF_ANALYTICS_TOKEN (see .env.production and the README). Cloudflare's
+# always-pass test site key is 1x00000000000000000000AA (pairs with the test secret
+# in evals-server.sh).

@@ -1,0 +1,14 @@
+---
+import type { Project } from '../data/types';
+import ProjectCard from './ProjectCard.astro';
+
+interface Props {
+  projects: Project[];
+}
+
+const { projects } = Astro.props;
+---
+<section id="projects" class="section wrap" aria-labelledby="projects-title">
+  <h2 id="projects-title" class="section-title">AI he has shipped to production</h2>
+  {projects.map((project) => <ProjectCard project={project} />)}
+</section>

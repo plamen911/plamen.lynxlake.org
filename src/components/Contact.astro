@@ -1,0 +1,88 @@
+---
+import type { Profile } from '../data/types';
+
+interface Props {
+  profile: Profile;
+}
+
+const { profile } = Astro.props;
+const { links } = profile;
+---
+<section id="contact" class="section wrap" aria-labelledby="contact-title">
+  <h2 id="contact-title" class="section-title">How to work with him</h2>
+  <div class="grid">
+    <div class="reach">
+      <p class="email"><a href={`mailto:${profile.email}`}>{profile.email}</a></p>
+      <ul class="links">
+        <li><a href={links.linkedin.href} rel="noopener">{links.linkedin.label}</a></li>
+        <li><a href={links.github.href} rel="noopener">{links.github.label}</a></li>
+        <li><a href={links.cv.href}>{links.cv.label}</a></li>
+      </ul>
+      <p class="location">{profile.location}</p>
+    </div>
+    <div class="facts">
+      <div>
+        <h3>Terms</h3>
+        <ul>{profile.terms.map((t) => <li>{t}</li>)}</ul>
+      </div>
+      <div>
+        <h3>Languages</h3>
+        <ul>{profile.languages.map((l) => <li>{l}</li>)}</ul>
+      </div>
+      <div>
+        <h3>Education</h3>
+        <ul>{profile.education.map((e) => <li>{e}</li>)}</ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid;
+    gap: 3rem;
+  }
+
+  @media (min-width: 900px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    }
+  }
+
+  .email {
+    font-family: var(--serif);
+    font-size: var(--step-3);
+    line-height: 1.2;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    font-weight: 600;
+  }
+
+  .location {
+    margin-top: 1.5rem;
+    color: var(--muted);
+  }
+
+  .facts {
+    display: grid;
+    gap: 2rem;
+  }
+
+  h3 {
+    font-size: var(--step-1);
+  }
+
+  .facts ul {
+    margin: 0.6rem 0 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.3rem;
+  }
+</style>
