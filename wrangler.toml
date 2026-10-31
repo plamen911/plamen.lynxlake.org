@@ -21,4 +21,4 @@ PRICE_CACHE_READ_PER_MTOK = "0.01"
 PRICE_CACHE_WRITE_PER_MTOK = "0.125"
 # Hostnames a Turnstile token may be issued on (siteverify `hostname`); a
 # mismatch fails verification. `*.x` allows subdomains of x (Pages previews).
-TURNSTILE_HOSTNAMES = "plamen.lynxlake.org,plamen-site.pages.dev,*.plamen-site.pages.dev,localhost"
+TURNSTILE_HOSTNAMES = "plamen.lynxlake.org,www.plamen.lynxlake.org,plamen-site.pages.dev,*.plamen-site.pages.dev,localhost"
