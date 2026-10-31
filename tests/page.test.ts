@@ -56,13 +56,19 @@ describe('one-page site', () => {
     expect(querySelector(doc, 'a[href="/cv/Plamen_Markov_CV.pdf"]')).toBeTruthy();
   });
 
-  it('links LinkedIn and GitHub with rel=noopener and no forced new tab', () => {
-    for (const href of [profile.links.linkedin.href, profile.links.github.href]) {
+  it('opens CV, email, LinkedIn and GitHub links in a new tab with rel=noopener', () => {
+    const hrefs = [
+      '/cv/Plamen_Markov_CV.pdf',
+      'mailto:plamen326@gmail.com',
+      profile.links.linkedin.href,
+      profile.links.github.href,
+    ];
+    for (const href of hrefs) {
       const links = querySelectorAll(doc, `a[href="${href}"]`);
       expect(links.length).toBeGreaterThan(0);
       for (const a of links) {
+        expect(a.attributes.target).toBe('_blank');
         expect(a.attributes.rel).toContain('noopener');
-        expect(a.attributes.target).toBeUndefined();
       }
     }
   });

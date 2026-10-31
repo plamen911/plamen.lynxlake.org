@@ -32,10 +32,10 @@ const starters = profile.starterQuestions.map((question, i) => ({ question, href
       <p class="badge"><span class="dot" aria-hidden="true"></span>{profile.availability}</p>
       <p class="summary">{profile.summary}</p>
       <ul class="actions">
-        <li><a class="btn primary" href={links.cv.href}>{links.cv.label}</a></li>
-        <li><a class="btn" href={`mailto:${profile.email}`}>Email</a></li>
-        <li><a class="btn" href={links.linkedin.href} rel="noopener">{links.linkedin.label}</a></li>
-        <li><a class="btn" href={links.github.href} rel="noopener">{links.github.label}</a></li>
+        <li><a class="btn primary" href={links.cv.href} target="_blank" rel="noopener">{links.cv.label}</a></li>
+        <li><a class="btn" href={`mailto:${profile.email}`} target="_blank" rel="noopener">Email</a></li>
+        <li><a class="btn" href={links.linkedin.href} target="_blank" rel="noopener noreferrer">{links.linkedin.label}</a></li>
+        <li><a class="btn" href={links.github.href} target="_blank" rel="noopener noreferrer">{links.github.label}</a></li>
       </ul>
     </div>
 
@@ -48,7 +48,7 @@ const starters = profile.starterQuestions.map((question, i) => ({ question, href
           ))}
         </ul>
         <p class="fallback">
-          Anything else? Email <a href={`mailto:${profile.email}`}>{profile.email}</a>.
+          Anything else? Email <a href={`mailto:${profile.email}`} target="_blank" rel="noopener">{profile.email}</a>.
         </p>
       </ChatWidget>
     </aside>
