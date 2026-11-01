@@ -164,7 +164,7 @@ export const profile: Profile = {
       period: '2026',
       summary: 'Products designed, built and shipped solo.',
       highlights: [
-        'ADR Zone: a React Native / Expo app in TypeScript, live on the App Store and Google Play. An offline dangerous-goods reference with 1,818 substances, relevance ranking and a Cyrillic case-fold layer.',
+        'ADR Zone: a React Native / Expo app in TypeScript, live on the App Store. An offline dangerous-goods reference with 1,818 substances, relevance ranking and a Cyrillic case-fold layer.',
         'go-insurance-checker: an MCP server in TypeScript, published on npm.',
         'A RAG assistant on Laravel, PostgreSQL + pgvector and Cohere rerank was built, deployed and run solo.',
       ],
