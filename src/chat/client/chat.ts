@@ -13,6 +13,8 @@ export const CONTACT_THANKS = 'Thanks — Plamen will reply by email.';
 const CONTACT_TITLE = 'Leave your email for Plamen';
 const CONTACT_INTRO = "He'll reply by email. Your email goes only to Plamen and isn't stored on this site.";
 const CONTACT_INVALID = 'Please enter a valid email address.';
+const CONTACT_NAME_REQUIRED = 'Please enter your name.';
+const CONTACT_MESSAGE_REQUIRED = 'Please write a short message.';
 const CONTACT_FAIL_START = "Couldn't send right now — ";
 const CONTACT_MAX_NAME = 100;
 const CONTACT_MAX_MESSAGE = 1000;
@@ -245,11 +247,13 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   contactEmail.control.required = true;
   contactEmail.control.autocomplete = 'email';
   contactEmail.control.maxLength = 254;
-  const contactName = contactField('input', 'name', 'Your name (optional)');
+  const contactName = contactField('input', 'name', 'Your name');
+  contactName.control.required = true;
   contactName.control.type = 'text';
   contactName.control.autocomplete = 'name';
   contactName.control.maxLength = CONTACT_MAX_NAME;
-  const contactMessage = contactField('textarea', 'message', 'Message (optional)');
+  const contactMessage = contactField('textarea', 'message', 'Message');
+  contactMessage.control.required = true;
   contactMessage.control.maxLength = CONTACT_MAX_MESSAGE;
   contactMessage.control.rows = 3;
   // Invalid email and failure messages, inside the dialog.
@@ -487,21 +491,30 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   async function sendContact(): Promise<void> {
     if (contactBusy) return;
     const address = contactEmail.control.value.trim();
-    if (address === '' || address.length > 254 || !EMAIL_SHAPE.test(address)) {
-      contactEmail.control.setAttribute('aria-invalid', 'true');
-      contactEmail.control.setAttribute('aria-describedby', contactNote.id);
-      contactNote.textContent = CONTACT_INVALID;
-      contactEmail.control.focus();
-      return;
-    }
-    contactEmail.control.removeAttribute('aria-invalid');
-    contactEmail.control.removeAttribute('aria-describedby');
-
-    const body: Record<string, string> = { email: address };
     const name = cleanName(contactName.control.value).slice(0, CONTACT_MAX_NAME);
     const message = cleanMessage(contactMessage.control.value).slice(0, CONTACT_MAX_MESSAGE);
-    if (name) body.name = name;
-    if (message) body.message = message;
+    for (const field of [contactEmail, contactName, contactMessage]) {
+      field.control.removeAttribute('aria-invalid');
+      field.control.removeAttribute('aria-describedby');
+    }
+    const invalid: [typeof contactEmail | typeof contactName | typeof contactMessage, string] | null =
+      address === '' || address.length > 254 || !EMAIL_SHAPE.test(address)
+        ? [contactEmail, CONTACT_INVALID]
+        : name === ''
+          ? [contactName, CONTACT_NAME_REQUIRED]
+          : message === ''
+            ? [contactMessage, CONTACT_MESSAGE_REQUIRED]
+            : null;
+    if (invalid) {
+      const [field, text] = invalid;
+      field.control.setAttribute('aria-invalid', 'true');
+      field.control.setAttribute('aria-describedby', contactNote.id);
+      contactNote.textContent = text;
+      field.control.focus();
+      return;
+    }
+
+    const body: Record<string, string> = { email: address, name, message };
 
     setContactBusy(true);
     contactNote.replaceChildren();

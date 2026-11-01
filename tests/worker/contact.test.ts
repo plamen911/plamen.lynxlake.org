@@ -159,8 +159,15 @@ describe('handleContact: validation', () => {
     expect(parsed).toEqual({ email, name: 'n'.repeat(100), message: 'line 1\nline 2' + 'm'.repeat(986) });
   });
 
-  it('treats blank optional fields as absent', () => {
-    expect(parseContactRequest({ email: 'jane@example.com', name: '  ', message: '\n' })).toEqual({ email: 'jane@example.com' });
+  it('requires a non-blank name and message', () => {
+    for (const body of [
+      { email: 'jane@example.com', message: 'Hello' },
+      { email: 'jane@example.com', name: '  ', message: 'Hello' },
+      { email: 'jane@example.com', name: 'Jane' },
+      { email: 'jane@example.com', name: 'Jane', message: '\n' },
+    ]) {
+      expect(parseContactRequest(body), JSON.stringify(body)).toHaveProperty('error');
+    }
   });
 });
 

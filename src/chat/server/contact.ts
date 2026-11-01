@@ -27,8 +27,8 @@ const errorResponse = (error: ErrorCode, setCookie?: string): Response => json({
 
 export interface ContactRequest {
   email: string;
-  name?: string;
-  message?: string;
+  name: string;
+  message: string;
   turnstileToken?: string;
 }
 
@@ -40,19 +40,19 @@ const CONTROL_EXCEPT_NEWLINE = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/;
 /** One plain `local@domain.tld` address: no spaces, list separators, quotes, comments or angle brackets. */
 const EMAIL_SHAPE = /^[^\s@,;<>()"]+@[^\s@.,;<>()"]+(\.[^\s@.,;<>()"]+)+$/;
 
-/** An optional text field: absent, or a string that is trimmed (blank → absent). Null if invalid. */
-function optional(value: unknown, max: number, control: RegExp): { value?: string } | null {
-  if (value === undefined) return {};
+/** A required text field: a string, trimmed, non-blank, within `max`, without `control` characters. Null if invalid. */
+function required(value: unknown, max: number, control: RegExp): string | null {
   if (typeof value !== 'string') return null;
   const text = value.replace(/\r\n?/g, '\n').trim();
-  if (text.length > max || control.test(text)) return null;
-  return text === '' ? {} : { value: text };
+  if (text === '' || text.length > max || control.test(text)) return null;
+  return text;
 }
 
 /**
  * Validates a contact request: `email` required (trimmed, at most 254 chars,
- * `local@domain.tld`), `name` at most 100 chars on one line, `message` at most
- * 1000 chars (newlines allowed, CRLF normalised), no other control characters.
+ * `local@domain.tld`), `name` required, at most 100 chars on one line, `message`
+ * required, at most 1000 chars (newlines allowed, CRLF normalised), no other
+ * control characters.
  */
 export function parseContactRequest(body: unknown): ContactRequest | { error: string } {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return { error: 'body must be an object' };
@@ -62,9 +62,9 @@ export function parseContactRequest(body: unknown): ContactRequest | { error: st
   const email = raw.email.trim();
   if (email.length > MAX_EMAIL_CHARS || CONTROL.test(email) || !EMAIL_SHAPE.test(email)) return { error: 'bad email' };
 
-  const name = optional(raw.name, MAX_NAME_CHARS, CONTROL);
+  const name = required(raw.name, MAX_NAME_CHARS, CONTROL);
   if (!name) return { error: 'bad name' };
-  const message = optional(raw.message, MAX_MESSAGE_CHARS, CONTROL_EXCEPT_NEWLINE);
+  const message = required(raw.message, MAX_MESSAGE_CHARS, CONTROL_EXCEPT_NEWLINE);
   if (!message) return { error: 'bad message' };
 
   const { turnstileToken } = raw;
@@ -72,9 +72,7 @@ export function parseContactRequest(body: unknown): ContactRequest | { error: st
     return { error: 'bad turnstile token' };
   }
 
-  const parsed: ContactRequest = { email };
-  if (name.value) parsed.name = name.value;
-  if (message.value) parsed.message = message.value;
+  const parsed: ContactRequest = { email, name, message };
   if (turnstileToken !== undefined) parsed.turnstileToken = turnstileToken;
   return parsed;
 }
@@ -82,8 +80,8 @@ export function parseContactRequest(body: unknown): ContactRequest | { error: st
 const errText = (err: unknown): string => (err instanceof Error ? err.message : 'unknown');
 
 /**
- * POST /api/contact: a visitor leaves an email (plus optional name and
- * message) for Plamen to reply to. Order: config → validate → session or
+ * POST /api/contact: a visitor leaves an email, name and
+ * message for Plamen to reply to. Order: config → validate → session or
  * Turnstile (exactly as the chat; a pass issues the session cookie) → rate
  * (3 per visitor per hour, 3 per session, 50 per UTC day in all) → send to
  * Telegram, awaited.

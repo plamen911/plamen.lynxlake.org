@@ -341,7 +341,7 @@ describe('contact dialog', () => {
     toggle().click();
   }
 
-  async function submitContact(email: string, name = '', message = ''): Promise<void> {
+  async function submitContact(email: string, name = 'Jane Doe', message = 'We have a role.'): Promise<void> {
     field<HTMLInputElement>('email').value = email;
     field<HTMLInputElement>('name').value = name;
     field<HTMLTextAreaElement>('message').value = message;
@@ -373,7 +373,7 @@ describe('contact dialog', () => {
     expect(email.type).toBe('email');
     expect(email.required).toBe(true);
     expect(email.autocomplete).toBe('email');
-    expect(field<HTMLInputElement>('name').required).toBe(false);
+    expect(field<HTMLInputElement>('name').required).toBe(true);
     expect(field<HTMLTextAreaElement>('message').tagName).toBe('TEXTAREA');
     expect(field<HTMLTextAreaElement>('message').maxLength).toBe(1000);
     for (const name of ['email', 'name', 'message']) {
@@ -469,12 +469,29 @@ describe('contact dialog', () => {
     expect(document.activeElement).toBe(field('email'));
   });
 
-  it('omits empty optional fields', async () => {
+  it('requires a name and a message, flagging the first missing field', async () => {
     const fetchFn = vi.fn(async () => ok());
     mount(fetchFn);
     open();
-    await submitContact('jane@example.com');
-    expect(JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body))).toEqual({ email: 'jane@example.com' });
+    expect(field('name').hasAttribute('required')).toBe(true);
+    expect(field('message').hasAttribute('required')).toBe(true);
+    await submitContact('jane@example.com', '  ', 'Hello');
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(field('name').getAttribute('aria-invalid')).toBe('true');
+    expect(note().textContent).toBe('Please enter your name.');
+    expect(document.activeElement).toBe(field('name'));
+    await submitContact('jane@example.com', 'Jane', ' \n ');
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(field('name').hasAttribute('aria-invalid')).toBe(false);
+    expect(field('message').getAttribute('aria-invalid')).toBe('true');
+    expect(note().textContent).toBe('Please write a short message.');
+    expect(document.activeElement).toBe(field('message'));
+    await submitContact('jane@example.com', 'Jane', 'Hello');
+    expect(JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body))).toEqual({
+      email: 'jane@example.com',
+      name: 'Jane',
+      message: 'Hello',
+    });
   });
 
   it('replaces tabs with spaces and strips other control characters before sending', async () => {
@@ -517,7 +534,7 @@ describe('contact dialog', () => {
   ])('shows the email fallback in the dialog on %s and keeps it open', async (_name, make) => {
     mount(vi.fn(async () => make()), { getTurnstileToken: async () => 'tok' });
     open();
-    await submitContact('jane@example.com', '', 'Hello');
+    await submitContact('jane@example.com', 'Jane', 'Hello');
     expect(dialog().open).toBe(true);
     expect(note().textContent).toBe(SORRY);
     expect(note().querySelector('a')?.getAttribute('href')).toBe(`mailto:${EMAIL}`);
@@ -583,7 +600,7 @@ describe('contact dialog', () => {
       return ok();
     }));
     open();
-    await submitContact('jane@example.com', '', 'Hello');
+    await submitContact('jane@example.com', 'Jane', 'Hello');
     cancelButton().click();
     expectClosed();
     release();
@@ -604,7 +621,7 @@ describe('contact dialog', () => {
       return jsonResponse(503, 'unavailable');
     }));
     open();
-    await submitContact('jane@example.com', '', 'Hello');
+    await submitContact('jane@example.com', 'Jane', 'Hello');
     dialog().dispatchEvent(new Event('cancel', { cancelable: true }));
     expectClosed();
     release();
