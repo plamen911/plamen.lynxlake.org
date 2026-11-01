@@ -226,7 +226,7 @@ export const profile: Profile = {
 
   terms: [
     'Remote, B2B contract',
-    'Start within about 2 weeks',
+    'Available to start immediately',
     'Async-friendly',
     'European hours, with US overlap',
   ],
