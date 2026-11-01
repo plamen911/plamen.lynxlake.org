@@ -22,11 +22,13 @@ const segments = (text: string) => text.split('`').map((value, i) => ({ value, c
       {project.tags.map((tag) => <li>{tag}</li>)}
     </ul>
     {project.links && project.links.length > 0 && (
-      <p class="link">
-        {project.links.map((l, i) => (
-          <>{i > 0 && ' · '}<a href={l.href} target="_blank" rel="noopener noreferrer">{l.label}</a></>
+      <ul class="links" aria-label="Links">
+        {project.links.map((l) => (
+          <li>
+            <a href={l.href} target="_blank" rel="noopener noreferrer">{l.label}<span class="ext" aria-hidden="true"> ↗</span></a>
+          </li>
         ))}
-      </p>
+      </ul>
     )}
   </div>
   <dl class="body">
@@ -81,10 +83,22 @@ const segments = (text: string) => text.split('`').map((value, i) => ({ value, c
     color: var(--muted);
   }
 
-  .link {
-    margin-top: 1rem;
-    font-size: var(--step--1);
+  .links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
     font-weight: 600;
+  }
+  .links a {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  .links .ext {
+    text-decoration: none;
+    display: inline-block;
   }
 
   .body {

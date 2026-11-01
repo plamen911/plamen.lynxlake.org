@@ -86,8 +86,8 @@ export const profile: Profile = {
         'and the sales form now decides by itself whether a car can be insured and from which date.',
       tags: ['MCP', 'TypeScript', 'Node.js', 'npm', 'Laravel'],
       links: [
-        { label: 'github.com/plamen911/go-insurance-checker', href: 'https://github.com/plamen911/go-insurance-checker' },
-        { label: 'npm package', href: 'https://www.npmjs.com/package/go-insurance-checker' },
+        { label: 'Source on GitHub', href: 'https://github.com/plamen911/go-insurance-checker' },
+        { label: 'Package on npm', href: 'https://www.npmjs.com/package/go-insurance-checker' },
       ],
       tense: 'present',
     },
