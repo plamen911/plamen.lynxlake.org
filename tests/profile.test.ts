@@ -28,12 +28,15 @@ describe('public profile', () => {
   it('does not link the fire-report plugin', () => {
     const plugin = profile.projects.find((p) => p.id === 'fire-report-plugin');
     expect(plugin).toBeDefined();
-    expect(plugin?.link).toBeUndefined();
+    expect(plugin?.links).toBeUndefined();
   });
 
   it('links the MCP server to its public repo', () => {
     const mcp = profile.projects.find((p) => p.id === 'mcp-go-checker');
-    expect(mcp?.link?.href).toBe('https://github.com/plamen911/go-insurance-checker');
+    expect(mcp?.links?.map((l) => l.href)).toEqual([
+      'https://github.com/plamen911/go-insurance-checker',
+      'https://www.npmjs.com/package/go-insurance-checker',
+    ]);
   });
 
   it('lists experience in the spec order', () => {

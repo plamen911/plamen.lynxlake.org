@@ -21,8 +21,12 @@ const segments = (text: string) => text.split('`').map((value, i) => ({ value, c
     <ul class="tags" aria-label="Technologies">
       {project.tags.map((tag) => <li>{tag}</li>)}
     </ul>
-    {project.link && (
-      <p class="link"><a href={project.link.href} rel="noopener">{project.link.label}</a></p>
+    {project.links && project.links.length > 0 && (
+      <p class="link">
+        {project.links.map((l, i) => (
+          <>{i > 0 && ' · '}<a href={l.href} target="_blank" rel="noopener noreferrer">{l.label}</a></>
+        ))}
+      </p>
     )}
   </div>
   <dl class="body">

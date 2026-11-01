@@ -10,7 +10,7 @@ export interface Project {
   approach: string;
   result: string;
   tags: string[];
-  link?: Link;
+  links?: Link[];
   tense: 'present' | 'past';
 }
 

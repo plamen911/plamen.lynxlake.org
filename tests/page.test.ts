@@ -84,7 +84,7 @@ describe('one-page site', () => {
     const card = querySelector(doc, 'article.project#project-fire-report-plugin');
     expect(card).toBeTruthy();
     expect(querySelector(card, 'a')).toBeFalsy();
-    expect(profile.projects.find((p) => p.id === 'fire-report-plugin')?.link).toBeUndefined();
+    expect(profile.projects.find((p) => p.id === 'fire-report-plugin')?.links).toBeUndefined();
   });
 
   it('renders the experience roles and stack groups', () => {

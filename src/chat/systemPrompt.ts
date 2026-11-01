@@ -15,7 +15,7 @@ function projectsSection(profile: Profile): string {
         `- Approach: ${p.approach}`,
         `- Result: ${p.result}`,
         `- Tags: ${p.tags.join(', ')}`,
-        ...(p.link ? [`- Link: ${p.link.label} (${p.link.href})`] : []),
+        ...(p.links ?? []).map((l) => `- Link: ${l.label} (${l.href})`),
       ].join('\n'),
     )
     .join('\n\n');
