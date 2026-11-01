@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MAX_NOTIFY_CHARS, notifyQuestion } from '../src/chat/server/notify';
+import { MAX_NOTIFY_CHARS, notifyContact, notifyQuestion, sendTelegram } from '../src/chat/server/notify';
 
 const NOW = new Date('2026-11-01T19:30:00Z');
 const TG = { TELEGRAM_BOT_TOKEN: '123:abc', TELEGRAM_CHAT_ID: '42' };
@@ -53,6 +53,62 @@ describe('notifyQuestion', () => {
       notifyQuestion(TG, { question: 'q', host: 'h', newVisitor: true, now: NOW }, vi.fn(async () => new Response('no', { status: 400 }))),
     ).resolves.toBeUndefined();
     expect(error).toHaveBeenCalledTimes(2);
+    error.mockRestore();
+  });
+});
+
+const bodyOf = (fetchFn: ReturnType<typeof vi.fn>) =>
+  JSON.parse((fetchFn.mock.calls[0]! as unknown as [string, RequestInit])[1].body as string) as Record<string, unknown>;
+
+describe('sendTelegram', () => {
+  it('reports unconfigured without calling fetch when the token or chat id is missing or blank', async () => {
+    const fetchFn = vi.fn();
+    expect(await sendTelegram({}, 'hi', fetchFn)).toBe('unconfigured');
+    expect(await sendTelegram({ TELEGRAM_BOT_TOKEN: '123:abc' }, 'hi', fetchFn)).toBe('unconfigured');
+    expect(await sendTelegram({ TELEGRAM_BOT_TOKEN: ' ', TELEGRAM_CHAT_ID: '42' }, 'hi', fetchFn)).toBe('unconfigured');
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('posts plain text to the bot chat and reports sent when Telegram accepts it', async () => {
+    const fetchFn = vi.fn(async () => Response.json({ ok: true }));
+    expect(await sendTelegram(TG, 'hello', fetchFn)).toBe('sent');
+    const [url, init] = fetchFn.mock.calls[0]! as unknown as [string, RequestInit];
+    expect(url).toBe('https://api.telegram.org/bot123:abc/sendMessage');
+    expect(init.method).toBe('POST');
+    expect(bodyOf(fetchFn)).toEqual({ chat_id: '42', text: 'hello', disable_web_page_preview: true });
+  });
+
+  it('reports failed (never throws) on a non-ok response or a network error', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await sendTelegram(TG, 'x', vi.fn(async () => new Response('no', { status: 400 })))).toBe('failed');
+    expect(await sendTelegram(TG, 'x', vi.fn(async () => { throw new Error('down'); }))).toBe('failed');
+    error.mockRestore();
+  });
+});
+
+describe('notifyContact', () => {
+  const notice = { email: 'jane@example.com', name: 'Jane Recruiter', message: 'We have a role.\nCan we talk?', host: 'plamen.lynxlake.org', now: NOW };
+
+  it('formats the header, email, name and message', async () => {
+    const fetchFn = vi.fn(async () => Response.json({ ok: true }));
+    expect(await notifyContact(TG, notice, fetchFn)).toBe(true);
+    expect(bodyOf(fetchFn).text).toBe(
+      '📩 Contact request · plamen.lynxlake.org · 2026-11-01 19:30 UTC\n\n' +
+        'Email: jane@example.com\nName: Jane Recruiter\n\nWe have a role.\nCan we talk?',
+    );
+    expect(bodyOf(fetchFn).parse_mode).toBeUndefined();
+  });
+
+  it('omits the name and message lines when they are not given', async () => {
+    const fetchFn = vi.fn(async () => Response.json({ ok: true }));
+    await notifyContact(TG, { email: 'jane@example.com', host: 'h', now: NOW }, fetchFn);
+    expect(bodyOf(fetchFn).text).toBe('📩 Contact request · h · 2026-11-01 19:30 UTC\n\nEmail: jane@example.com');
+  });
+
+  it('returns false when Telegram is unconfigured or fails', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await notifyContact({}, notice, vi.fn())).toBe(false);
+    expect(await notifyContact(TG, notice, vi.fn(async () => new Response('no', { status: 500 })))).toBe(false);
     error.mockRestore();
   });
 });

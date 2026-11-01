@@ -10,6 +10,7 @@ SESSION_SECRET=a-long-random-string
 # always-pass test site key is 1x00000000000000000000AA (pairs with the test secret
 # in evals-server.sh).
 
-# Optional: Telegram message per chat question (both must be set; see notify.ts)
+# Optional: Telegram message per chat question (both must be set; see notify.ts).
+# Also required for the "Leave your email" form (/api/contact): without them it answers 503.
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
