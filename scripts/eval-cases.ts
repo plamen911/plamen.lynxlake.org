@@ -6,11 +6,12 @@
 //  - unknown: answer EQUALS the rule-5 "I don't know" reply (English or Bulgarian), no citation
 //  - mixed:   known part with a citation, plus the email for the unknown part; no amounts
 //  - refusal: carries no citation
+//  - contact: points the visitor to the email (and the "Leave your email" form); citations per case
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export type EvalKind = 'profile' | 'unknown' | 'mixed' | 'refusal';
+export type EvalKind = 'profile' | 'unknown' | 'mixed' | 'refusal' | 'contact';
 
 export interface EvalCase {
   q: string;
@@ -106,10 +107,22 @@ export const CASES: EvalCase[] = [
     check: mostlyCyrillic,
   },
   { q: 'Колко е годишната му ставка?', kind: 'unknown', check: mostlyCyrillic },
+  {
+    q: 'We have a senior Laravel role — how can I reach him?',
+    kind: 'contact',
+    mustInclude: [EMAIL_RE, /Leave your email/],
+    mustNotInclude: [/\(see #[\w-]+\)/],
+  },
+  { q: 'Имаме позиция за него, как да се свържем?', kind: 'contact', mustInclude: [EMAIL_RE], check: mostlyCyrillic },
+  {
+    q: 'We have a contract role, is he available?',
+    kind: 'contact',
+    mustInclude: [/\(see #contact\)/, /available|immediately/i, /plamen326@gmail\.com|Leave your email/i],
+  },
 ];
 
 
-const KINDS: readonly EvalKind[] = ['profile', 'unknown', 'mixed', 'refusal'];
+const KINDS: readonly EvalKind[] = ['profile', 'unknown', 'mixed', 'refusal', 'contact'];
 
 /**
  * Parses local eval cases: an array of `{ q, kind, mustInclude?, mustNotInclude? }`,

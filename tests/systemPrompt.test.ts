@@ -50,9 +50,23 @@ describe('buildSystemPrompt', () => {
 
   it('points visitors who want to reach Plamen to his email or the contact form, without a citation', () => {
     expect(prompt).toContain(
-      '16. If the visitor wants to reach Plamen, or says they have a role, project or offer for him, say they can email him at plamen326@gmail.com or use "Leave your email" below the chat. This reply carries no citation.',
+      '16. If the visitor wants to reach Plamen, or says they have a role, project or offer for him, say they can email him at plamen326@gmail.com or use "Leave your email" below the chat.',
     );
     expect(prompt).toContain('and the contact reply (rule 16) carry NO citation');
+  });
+
+  it('breaks the rule 16 / rule 8 tie: availability or terms first with (see #contact), then the contact pointer', () => {
+    const rule16 = prompt.slice(prompt.indexOf('16. '), prompt.indexOf('Examples:'));
+    expect(rule16).toContain('also asks about availability, start date, location or terms');
+    expect(rule16).toContain('first answer that part under rule 8, ending it with `(see #contact)`');
+    expect(rule16).toContain('then add the contact sentence after the citation');
+    expect(prompt).toContain('except in the rule-16 case, where the contact sentence follows the citation');
+  });
+
+  it('keeps the button name in English when the contact reply is in Bulgarian', () => {
+    const rule16 = prompt.slice(prompt.indexOf('16. '), prompt.indexOf('Examples:'));
+    expect(rule16).toContain('in Bulgarian (rule 12)');
+    expect(rule16).toContain('keep the button name "Leave your email" in English, exactly as written');
   });
 
   it('wraps the profile in delimiters before the rules', () => {

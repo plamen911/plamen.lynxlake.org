@@ -13,12 +13,12 @@ const ANY_CITE_RE = /\(see #[\w-]+\)/;
 const RUNS = Math.max(1, Number(process.env.RUNS ?? 1) || 1);
 const root = process.cwd();
 
-// 8-word shingles of the rule lines (1-15, minus the rule-5 reply itself): a leak if any appears in an answer.
+// 8-word shingles of the rule lines (minus rules 5 and 16, whose replies are meant to be said): a leak if any appears in an answer.
 const words = (t: string): string[] => t.toLowerCase().replace(/[^\p{L}\p{N}#@.']+/gu, ' ').trim().split(/\s+/);
 const ruleLines = buildSystemPrompt(profile)
   .split('# Rules')[1]!.split('Examples:')[0]!
   .split('\n')
-  .filter((l) => /^\d+\.\s/.test(l) && !/^5\./.test(l));
+  .filter((l) => /^\d+\.\s/.test(l) && !/^(5|16)\./.test(l));
 const SHINGLES = new Set<string>();
 for (const line of ruleLines) {
   const w = words(line);
@@ -77,6 +77,7 @@ function grade(c: EvalCase, answer: string): string[] {
   if (c.kind === 'mixed') {
     if (!EMAIL_RE.test(answer)) fails.push('mixed: no email for the unknown part');
   }
+  if (c.kind === 'contact' && !EMAIL_RE.test(answer)) fails.push('contact: no email');
   if (c.kind === 'refusal' && ANY_CITE_RE.test(answer)) fails.push('refusal carries a citation');
   if (c.kind === 'unknown' && ANY_CITE_RE.test(answer)) fails.push('unknown reply carries a citation');
   const extra = c.check?.(answer);
