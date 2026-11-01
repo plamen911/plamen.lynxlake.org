@@ -6,7 +6,9 @@ with an AI chat about his work and a "Leave your email" contact form, both serve
 ## Layout
 
 - `src/data/profile.ts` - the curated public profile. The page **and** the chat's knowledge are generated from it, so
-  edit facts here only.
+  edit facts here only. A project may carry `links` (label + URL); its card lists them one per line with a ↗ marker,
+  and the chat knows them too. External links on the page (CV, email, LinkedIn, GitHub, project links) open in a new
+  tab.
 - `src/components/` - the page sections (`Hero`, `Projects`/`ProjectCard`, `AiWorkflow`, `Experience`, `Stack`,
   `Contact`, `Footer`) and `ChatWidget`; `src/layouts/Base.astro` holds the document shell; `src/styles/tokens.css`
   the design tokens. Styling is plain CSS (tokens plus Astro-scoped component styles), no CSS framework.
