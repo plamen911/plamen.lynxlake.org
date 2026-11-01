@@ -178,10 +178,71 @@ const { starters, email } = Astro.props;
     text-decoration-thickness: 2px;
   }
 
+  /* "Leave your email" dialog: shown with showModal(), so it sits in the top layer. */
+  #chat-root .chat-contact-dialog {
+    box-sizing: border-box;
+    width: calc(100% - 2rem);
+    max-width: 440px;
+    max-height: calc(100% - 2rem);
+    margin: auto;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--hero-line);
+    border-radius: 12px;
+    background: var(--hero-panel);
+    color: var(--hero-text);
+    box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.45);
+  }
+
+  #chat-root .chat-contact-dialog::backdrop {
+    background: rgb(4 9 18 / 0.72);
+  }
+
+  #chat-root .chat-contact-box {
+    position: relative;
+    padding: clamp(1.25rem, 1rem + 1.5vw, 1.75rem);
+  }
+
+  #chat-root .chat-contact-x {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--hero-muted);
+    font: inherit;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  #chat-root .chat-contact-x:hover {
+    background: var(--hero-line);
+    color: var(--hero-text);
+  }
+
+  #chat-root .chat-contact-title {
+    padding-right: 2.5rem;
+    font-size: var(--step-1);
+  }
+
+  #chat-root .chat-contact-intro {
+    margin-top: 0.5rem;
+    color: var(--hero-muted);
+    font-size: var(--step--1);
+  }
+
   #chat-root .chat-contact:not([hidden]) {
     display: grid;
     gap: 0.75rem;
-    margin-top: 0.75rem;
+    margin-top: 1.25rem;
   }
 
   #chat-root .chat-contact-field {
@@ -198,8 +259,46 @@ const { starters, email } = Astro.props;
     resize: vertical;
   }
 
-  #chat-root .chat-contact .chat-send {
-    justify-self: start;
+  #chat-root .chat-contact-note:empty {
+    display: none;
+  }
+
+  #chat-root .chat-contact-note {
+    font-size: var(--step--1);
+  }
+
+  #chat-root .chat-contact-note:focus {
+    outline: none;
+  }
+
+  #chat-root .chat-contact-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  #chat-root .chat-contact-cancel {
+    padding: 0.6rem 1.15rem;
+    border: 1px solid var(--hero-line);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--hero-text);
+    font: inherit;
+    font-size: var(--step--1);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  #chat-root .chat-contact-cancel:hover {
+    border-color: var(--hero-muted);
+  }
+
+  #chat-root .chat-contact-done:not([hidden]) {
+    display: grid;
+    gap: 1rem;
+    justify-items: start;
+    margin-top: 1.25rem;
   }
 
   #chat-root .chat-contact-status:not(:empty) {
@@ -207,12 +306,32 @@ const { starters, email } = Astro.props;
     font-size: var(--step--1);
   }
 
+  #chat-root .chat-contact-note a,
   #chat-root .chat-contact-status a {
     color: var(--hero-accent);
   }
 
-  #chat-root .chat-contact-status:focus {
-    outline: none;
+  @media (prefers-reduced-motion: no-preference) {
+    #chat-root .chat-contact-dialog[open] {
+      animation: chat-contact-in 180ms ease-out;
+    }
+
+    #chat-root .chat-contact-dialog[open]::backdrop {
+      animation: chat-contact-fade 180ms ease-out;
+    }
+  }
+
+  @keyframes chat-contact-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem) scale(0.98);
+    }
+  }
+
+  @keyframes chat-contact-fade {
+    from {
+      opacity: 0;
+    }
   }
 
   #chat-root .chat-turnstile:not(:empty) {

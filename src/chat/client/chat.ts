@@ -10,6 +10,8 @@ export const NOTICE_LINE = `${NOTICE_AI}${NOTICE_EMAIL}. ${NOTICE_STORAGE} ${NOT
 
 export const CONTACT_TOGGLE = 'Want Plamen to get back to you? Leave your email';
 export const CONTACT_THANKS = 'Thanks — Plamen will reply by email.';
+const CONTACT_TITLE = 'Leave your email for Plamen';
+const CONTACT_INTRO = "He'll reply by email. Your email goes only to Plamen and isn't stored on this site.";
 const CONTACT_INVALID = 'Please enter a valid email address.';
 const CONTACT_FAIL_START = "Couldn't send right now — ";
 const CONTACT_MAX_NAME = 100;
@@ -217,16 +219,27 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   sendButton.type = 'submit';
   form.append(label, input, sendButton);
 
-  // "Leave your email": a toggle below the input row and an inline form.
+  // "Leave your email": a button below the input row that opens a modal dialog.
   const contactToggle = el('button', 'chat-contact-toggle', CONTACT_TOGGLE);
   contactToggle.type = 'button';
+  contactToggle.setAttribute('aria-haspopup', 'dialog');
+  const contactDialog = el('dialog', 'chat-contact-dialog');
+  contactDialog.id = 'chat-contact-dialog';
+  contactToggle.setAttribute('aria-controls', contactDialog.id);
+  const contactBox = el('div', 'chat-contact-box');
+  const contactClose = el('button', 'chat-contact-x', '×');
+  contactClose.type = 'button';
+  contactClose.setAttribute('aria-label', 'Close');
+  const contactTitle = el('h2', 'chat-contact-title', CONTACT_TITLE);
+  contactTitle.id = 'chat-contact-title';
+  contactDialog.setAttribute('aria-labelledby', contactTitle.id);
+  const contactIntro = el('p', 'chat-contact-intro', CONTACT_INTRO);
+  contactIntro.id = 'chat-contact-intro';
+  contactDialog.setAttribute('aria-describedby', contactIntro.id);
+
   const contactForm = el('form', 'chat-contact');
   contactForm.id = 'chat-contact';
-  contactForm.hidden = true;
   contactForm.setAttribute('aria-busy', 'false');
-  contactForm.setAttribute('aria-label', 'Leave your email for Plamen');
-  contactToggle.setAttribute('aria-controls', contactForm.id);
-  contactToggle.setAttribute('aria-expanded', 'false');
   const contactEmail = contactField('input', 'email', 'Your email');
   contactEmail.control.type = 'email';
   contactEmail.control.required = true;
@@ -239,19 +252,40 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   const contactMessage = contactField('textarea', 'message', 'Message (optional)');
   contactMessage.control.maxLength = CONTACT_MAX_MESSAGE;
   contactMessage.control.rows = 3;
+  // Invalid email and failure messages, inside the dialog.
+  const contactNote = el('p', 'chat-contact-note');
+  contactNote.id = 'chat-contact-note';
+  contactNote.tabIndex = -1;
+  contactNote.setAttribute('role', 'status');
+  contactNote.setAttribute('aria-live', 'polite');
+  const contactActions = el('div', 'chat-contact-actions');
   const contactSend = el('button', 'chat-send', 'Send to Plamen');
   contactSend.type = 'submit';
-  contactForm.append(contactEmail.row, contactName.row, contactMessage.row, contactSend);
+  const contactCancel = el('button', 'chat-contact-cancel', 'Cancel');
+  contactCancel.type = 'button';
+  contactActions.append(contactSend, contactCancel);
+  contactForm.append(contactEmail.row, contactName.row, contactMessage.row, contactNote, contactActions);
+
+  // After a successful send: the thanks line and a single Close button.
+  const contactDone = el('div', 'chat-contact-done');
+  contactDone.hidden = true;
+  const contactDoneClose = el('button', 'chat-send', 'Close');
+  contactDoneClose.type = 'button';
+  contactDone.append(el('p', 'chat-contact-thanks', CONTACT_THANKS), contactDoneClose);
+
+  contactBox.append(contactClose, contactTitle, contactIntro, contactForm, contactDone);
+  contactDialog.append(contactBox);
+
+  // The live region under the chat, outside the dialog: announces the result once the dialog is closed.
   const contactStatus = el('p', 'chat-contact-status');
   contactStatus.id = 'chat-contact-status';
-  contactStatus.tabIndex = -1;
   contactStatus.setAttribute('role', 'status');
   contactStatus.setAttribute('aria-live', 'polite');
 
   const turnstileBox = el('div', 'chat-turnstile');
   const notice = el('p', 'chat-notice');
   renderNotice(notice, email);
-  wrapper.append(title, log, starterList, form, contactToggle, contactForm, contactStatus, turnstileBox, notice);
+  wrapper.append(title, log, starterList, form, contactToggle, contactDialog, contactStatus, turnstileBox, notice);
 
   const turnstile = opts.getTurnstileToken ? null : createTurnstile(opts.siteKey, turnstileBox);
   const getToken = opts.getTurnstileToken ?? (() => turnstile!.getToken());
@@ -361,19 +395,68 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   }
 
   let contactBusy = false;
+  /** Text for the live region under the chat, written when the dialog closes. */
+  let contactAnnounce = '';
+  /** Where the last pointerdown in the dialog landed: a click closes only if it started and ended on the backdrop. */
+  let pointerOnBackdrop = false;
 
-  function setContactOpen(open: boolean): void {
-    contactForm.hidden = !open;
-    contactToggle.setAttribute('aria-expanded', String(open));
+  function isContactOpen(): boolean {
+    return contactDialog.hasAttribute('open');
   }
 
-  contactToggle.addEventListener('click', () => {
-    const open = contactToggle.getAttribute('aria-expanded') !== 'true';
-    setContactOpen(open);
-    if (open) {
-      contactStatus.replaceChildren();
-      contactEmail.control.focus();
+  function openContact(): void {
+    if (isContactOpen()) return;
+    contactNote.replaceChildren();
+    contactForm.hidden = false;
+    contactDone.hidden = true;
+    contactStatus.replaceChildren();
+    // Feature-detect: without showModal, fall back to the open attribute (non-modal).
+    if (typeof contactDialog.showModal === 'function') contactDialog.showModal();
+    else contactDialog.setAttribute('open', '');
+    contactEmail.control.focus();
+  }
+
+  function closeContact(): void {
+    if (!isContactOpen()) return;
+    if (typeof contactDialog.close === 'function') contactDialog.close();
+    else contactDialog.removeAttribute('open');
+    afterContactClosed();
+  }
+
+  function afterContactClosed(): void {
+    contactToggle.focus();
+    if (contactAnnounce) {
+      contactStatus.textContent = contactAnnounce;
+      contactAnnounce = '';
     }
+  }
+
+  contactToggle.addEventListener('click', openContact);
+  contactClose.addEventListener('click', closeContact);
+  contactCancel.addEventListener('click', closeContact);
+  contactDoneClose.addEventListener('click', closeContact);
+  // Esc: the native dialog fires `cancel`; close through the same path so focus and announcements match.
+  contactDialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeContact();
+  });
+  contactDialog.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !event.isComposing) {
+      event.preventDefault();
+      closeContact();
+    }
+  });
+  // A native close that bypassed closeContact (e.g. a form with method=dialog) still returns focus.
+  contactDialog.addEventListener('close', () => {
+    if (contactBox.contains(document.activeElement) || document.activeElement === document.body) afterContactClosed();
+  });
+  // The box fills the dialog, so a click whose target is the dialog itself is on the backdrop.
+  contactDialog.addEventListener('pointerdown', (event) => {
+    pointerOnBackdrop = event.target === contactDialog;
+  });
+  contactDialog.addEventListener('click', (event) => {
+    if (event.target === contactDialog && pointerOnBackdrop) closeContact();
+    pointerOnBackdrop = false;
   });
 
   function setContactBusy(value: boolean): void {
@@ -406,8 +489,8 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     const address = contactEmail.control.value.trim();
     if (address === '' || address.length > 254 || !EMAIL_SHAPE.test(address)) {
       contactEmail.control.setAttribute('aria-invalid', 'true');
-      contactEmail.control.setAttribute('aria-describedby', contactStatus.id);
-      contactStatus.textContent = CONTACT_INVALID;
+      contactEmail.control.setAttribute('aria-describedby', contactNote.id);
+      contactNote.textContent = CONTACT_INVALID;
       contactEmail.control.focus();
       return;
     }
@@ -421,7 +504,7 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     if (message) body.message = message;
 
     setContactBusy(true);
-    contactStatus.replaceChildren();
+    contactNote.replaceChildren();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CONTACT_TIMEOUT_MS);
     let sent = false;
@@ -433,15 +516,26 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
       clearTimeout(timer);
       setContactBusy(false);
     }
+    // The visitor may have closed the dialog while this was in flight: then the result goes
+    // straight to the live region under the chat, without moving focus.
+    const open = isContactOpen();
     if (sent) {
       contactForm.reset();
-      setContactOpen(false);
-      contactStatus.textContent = CONTACT_THANKS;
-      contactStatus.focus();
-    } else {
+      contactForm.hidden = true;
+      contactDone.hidden = false;
+      if (open) {
+        contactAnnounce = CONTACT_THANKS;
+        contactDoneClose.focus();
+      } else {
+        contactStatus.textContent = CONTACT_THANKS;
+      }
+    } else if (open) {
       // The send button was disabled while busy, which drops focus: move it to the message (and its mailto link).
+      renderContactFailure(contactNote, email);
+      contactNote.focus();
+    } else {
+      // The form keeps the visitor's text for the next open.
       renderContactFailure(contactStatus, email);
-      contactStatus.focus();
     }
   }
 

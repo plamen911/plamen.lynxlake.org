@@ -316,17 +316,30 @@ describe('mountChat', () => {
   });
 });
 
-describe('contact form', () => {
+describe('contact dialog', () => {
   const TOGGLE = 'Want Plamen to get back to you? Leave your email';
   const THANKS = 'Thanks — Plamen will reply by email.';
   const SORRY = `Couldn't send right now — please email ${EMAIL}.`;
 
   const toggle = () => root.querySelector<HTMLButtonElement>('button.chat-contact-toggle')!;
-  const contactForm = () => root.querySelector<HTMLFormElement>('form.chat-contact')!;
+  const dialog = () => root.querySelector<HTMLDialogElement>('dialog.chat-contact-dialog')!;
+  const contactForm = () => dialog().querySelector<HTMLFormElement>('form.chat-contact')!;
   const field = <T extends HTMLElement>(name: string) => contactForm().querySelector<T>(`[name="${name}"]`)!;
   const submitButton = () => contactForm().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+  const cancelButton = () => contactForm().querySelector<HTMLButtonElement>('button.chat-contact-cancel')!;
+  const closeX = () => dialog().querySelector<HTMLButtonElement>('button.chat-contact-x')!;
+  const done = () => dialog().querySelector<HTMLElement>('.chat-contact-done')!;
+  const doneClose = () => done().querySelector<HTMLButtonElement>('button')!;
+  /** The message inside the dialog (invalid email, failure, thanks). */
+  const note = () => dialog().querySelector<HTMLElement>('.chat-contact-note')!;
+  /** The live region under the chat, outside the dialog. */
   const status = () => root.querySelector<HTMLElement>('.chat-contact-status')!;
   const ok = () => ({ ok: true, status: 200, body: null, json: async () => ({ ok: true }) }) as unknown as Response;
+
+  function open(): void {
+    toggle().focus();
+    toggle().click();
+  }
 
   async function submitContact(email: string, name = '', message = ''): Promise<void> {
     field<HTMLInputElement>('email').value = email;
@@ -336,19 +349,26 @@ describe('contact form', () => {
     await settle();
   }
 
-  it('shows a toggle after the input row that opens a labelled form', () => {
+  function expectClosed(): void {
+    expect(dialog().open).toBe(false);
+    expect(document.activeElement).toBe(toggle());
+  }
+
+  it('shows a trigger after the input row that opens a labelled modal dialog', () => {
     mount(vi.fn());
     const button = toggle();
     expect(button.textContent).toBe(TOGGLE);
     expect(button.type).toBe('button');
+    expect(button.getAttribute('aria-haspopup')).toBe('dialog');
     expect(root.querySelector('form.chat-form')!.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(contactForm().hidden).toBe(true);
-    expect(button.getAttribute('aria-expanded')).toBe('false');
-    expect(button.getAttribute('aria-controls')).toBe(contactForm().id);
+    expect(dialog().open).toBe(false);
 
-    button.click();
-    expect(contactForm().hidden).toBe(false);
-    expect(button.getAttribute('aria-expanded')).toBe('true');
+    open();
+    expect(dialog().open).toBe(true);
+    const heading = dialog().querySelector<HTMLElement>('h2')!;
+    expect(heading.textContent).toBe('Leave your email for Plamen');
+    expect(dialog().getAttribute('aria-labelledby')).toBe(heading.id);
+    expect(dialog().textContent).toContain("He'll reply by email. Your email goes only to Plamen and isn't stored on this site.");
     const email = field<HTMLInputElement>('email');
     expect(email.type).toBe('email');
     expect(email.required).toBe(true);
@@ -360,18 +380,63 @@ describe('contact form', () => {
       expect(contactForm().querySelector(`label[for="${field(name).id}"]`)?.textContent?.trim(), name).toBeTruthy();
     }
     expect(submitButton().textContent).toBe('Send to Plamen');
+    expect(cancelButton().textContent).toBe('Cancel');
+    expect(cancelButton().type).toBe('button');
+    expect(closeX().getAttribute('aria-label')).toBe('Close');
+    expect(closeX().type).toBe('button');
+    expect(done().hidden).toBe(true);
     expect(document.activeElement).toBe(email);
     expect(status().getAttribute('aria-live')).toBe('polite');
-
-    button.click();
-    expect(contactForm().hidden).toBe(true);
-    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(dialog().contains(status())).toBe(false);
   });
 
-  it('posts the contact to /api/contact and thanks the visitor, hiding the form', async () => {
+  it('closes with Cancel and returns focus to the trigger', () => {
+    mount(vi.fn());
+    open();
+    cancelButton().click();
+    expectClosed();
+  });
+
+  it('closes with the × button and returns focus to the trigger', () => {
+    mount(vi.fn());
+    open();
+    closeX().click();
+    expectClosed();
+  });
+
+  it('closes on Esc (the cancel event) and returns focus to the trigger', () => {
+    mount(vi.fn());
+    open();
+    dialog().dispatchEvent(new Event('cancel', { cancelable: true }));
+    expectClosed();
+  });
+
+  it('closes on an Escape keydown and returns focus to the trigger', () => {
+    mount(vi.fn());
+    open();
+    field('email').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expectClosed();
+  });
+
+  it('closes on a click on the backdrop, but not on a click inside the box', () => {
+    mount(vi.fn());
+    open();
+    field('email').dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    field('email').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(dialog().open).toBe(true);
+    // A drag that starts in a field and ends on the backdrop doesn't close it.
+    field('email').dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    dialog().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(dialog().open).toBe(true);
+    dialog().dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    dialog().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expectClosed();
+  });
+
+  it('posts the contact to /api/contact, thanks the visitor and resets the form', async () => {
     const fetchFn = vi.fn(async () => ok());
     mount(fetchFn);
-    toggle().click();
+    open();
     await submitContact('  jane@example.com ', 'Jane', 'We have a role.');
     expect(fetchFn).toHaveBeenCalledTimes(1);
     const [url, init] = fetchFn.mock.calls[0] as unknown as FetchArgs;
@@ -379,16 +444,35 @@ describe('contact form', () => {
     expect(init?.method).toBe('POST');
     expect(init?.credentials).toBe('same-origin');
     expect(JSON.parse(String(init?.body))).toEqual({ email: 'jane@example.com', name: 'Jane', message: 'We have a role.' });
-    expect(status().textContent).toBe(THANKS);
+
+    expect(dialog().open).toBe(true);
+    expect(done().hidden).toBe(false);
+    expect(done().textContent).toContain(THANKS);
     expect(contactForm().hidden).toBe(true);
-    expect(toggle().getAttribute('aria-expanded')).toBe('false');
-    expect(document.activeElement).toBe(status());
+    expect(doneClose().textContent).toBe('Close');
+    expect(document.activeElement).toBe(doneClose());
+    // Written to the live region under the chat once the dialog closes, so it is announced then.
+    expect(status().textContent).toBe('');
+    expect(field<HTMLInputElement>('email').value).toBe('');
+    expect(field<HTMLInputElement>('name').value).toBe('');
+    expect(field<HTMLTextAreaElement>('message').value).toBe('');
+
+    doneClose().click();
+    expectClosed();
+    expect(status().textContent).toBe(THANKS);
+
+    // The next open shows the empty form again.
+    open();
+    expect(contactForm().hidden).toBe(false);
+    expect(done().hidden).toBe(true);
+    expect(note().textContent).toBe('');
+    expect(document.activeElement).toBe(field('email'));
   });
 
   it('omits empty optional fields', async () => {
     const fetchFn = vi.fn(async () => ok());
     mount(fetchFn);
-    toggle().click();
+    open();
     await submitContact('jane@example.com');
     expect(JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body))).toEqual({ email: 'jane@example.com' });
   });
@@ -396,7 +480,7 @@ describe('contact form', () => {
   it('replaces tabs with spaces and strips other control characters before sending', async () => {
     const fetchFn = vi.fn(async () => ok());
     mount(fetchFn);
-    toggle().click();
+    open();
     await submitContact('jane@example.com', 'Ja\u0007ne\tDoe', 'Role:\tBackend\u0000\r\nRemote\u001b ok');
     expect(JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body))).toEqual({
       email: 'jane@example.com',
@@ -408,7 +492,7 @@ describe('contact form', () => {
   it('rejects an address list or a display-name address', async () => {
     const fetchFn = vi.fn(async () => ok());
     mount(fetchFn);
-    toggle().click();
+    open();
     for (const bad of ['a@example.com,b@example.com', 'Jane <jane@example.com>', 'a@example.com;b@example.com']) {
       await submitContact(bad);
       expect(fetchFn, bad).not.toHaveBeenCalled();
@@ -419,45 +503,49 @@ describe('contact form', () => {
     const fetchFn = vi.fn().mockResolvedValueOnce(jsonResponse(401, 'verify')).mockResolvedValueOnce(ok());
     const getTurnstileToken = vi.fn(async () => 'tok-9');
     mount(fetchFn, { getTurnstileToken });
-    toggle().click();
+    open();
     await submitContact('jane@example.com');
     expect(getTurnstileToken).toHaveBeenCalledTimes(1);
     expect(JSON.parse(String((fetchFn.mock.calls[1] as unknown as FetchArgs)[1]?.body)).turnstileToken).toBe('tok-9');
-    expect(status().textContent).toBe(THANKS);
+    expect(done().textContent).toContain(THANKS);
   });
 
   it.each([
     ['503', () => jsonResponse(503, 'unavailable')],
     ['429', () => jsonResponse(429, 'rate_limited')],
     ['a second 401', () => jsonResponse(401, 'verify')],
-  ])('shows the email fallback on %s and keeps the form', async (_name, make) => {
+  ])('shows the email fallback in the dialog on %s and keeps it open', async (_name, make) => {
     mount(vi.fn(async () => make()), { getTurnstileToken: async () => 'tok' });
-    toggle().click();
+    open();
     await submitContact('jane@example.com', '', 'Hello');
-    expect(status().textContent).toBe(SORRY);
-    expect(status().querySelector('a')?.getAttribute('href')).toBe(`mailto:${EMAIL}`);
+    expect(dialog().open).toBe(true);
+    expect(note().textContent).toBe(SORRY);
+    expect(note().querySelector('a')?.getAttribute('href')).toBe(`mailto:${EMAIL}`);
     expect(contactForm().hidden).toBe(false);
+    expect(done().hidden).toBe(true);
     expect(field<HTMLTextAreaElement>('message').value).toBe('Hello');
     expect(submitButton().disabled).toBe(false);
-    expect(document.activeElement).toBe(status());
+    expect(document.activeElement).toBe(note());
+    expect(status().textContent).toBe('');
   });
 
   it('shows the email fallback on a network error', async () => {
     mount(vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
-    toggle().click();
+    open();
     await submitContact('jane@example.com');
-    expect(status().textContent).toBe(SORRY);
+    expect(note().textContent).toBe(SORRY);
   });
 
   it('requires a valid email before sending', async () => {
     const fetchFn = vi.fn(async () => ok());
     mount(fetchFn);
-    toggle().click();
+    open();
     for (const bad of ['', '   ', 'not-an-email', 'jane@localhost']) {
       await submitContact(bad);
       expect(fetchFn, bad).not.toHaveBeenCalled();
       expect(field('email').getAttribute('aria-invalid')).toBe('true');
-      expect(status().textContent).toBe('Please enter a valid email address.');
+      expect(field('email').getAttribute('aria-describedby')).toBe(note().id);
+      expect(note().textContent).toBe('Please enter a valid email address.');
       expect(document.activeElement).toBe(field('email'));
     }
     await submitContact('jane@example.com');
@@ -473,25 +561,88 @@ describe('contact form', () => {
       return ok();
     });
     mount(fetchFn);
-    toggle().click();
+    open();
     await submitContact('jane@example.com');
     expect(submitButton().disabled).toBe(true);
     expect(contactForm().getAttribute('aria-busy')).toBe('true');
     contactForm().dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    submitButton().click();
     await settle();
     expect(fetchFn).toHaveBeenCalledTimes(1);
     release();
     await settle();
     expect(contactForm().getAttribute('aria-busy')).toBe('false');
+    expect(done().textContent).toContain(THANKS);
+  });
+
+  it('can be closed while a request is in flight; a late success is announced under the chat', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    mount(vi.fn(async () => {
+      await gate;
+      return ok();
+    }));
+    open();
+    await submitContact('jane@example.com', '', 'Hello');
+    cancelButton().click();
+    expectClosed();
+    release();
+    await settle();
+    expect(dialog().open).toBe(false);
     expect(status().textContent).toBe(THANKS);
+    expect(document.activeElement).toBe(toggle());
+    open();
+    expect(contactForm().hidden).toBe(false);
+    expect(field<HTMLTextAreaElement>('message').value).toBe('');
+  });
+
+  it('can be closed while a request is in flight; a late failure keeps the text and points to the email', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    mount(vi.fn(async () => {
+      await gate;
+      return jsonResponse(503, 'unavailable');
+    }));
+    open();
+    await submitContact('jane@example.com', '', 'Hello');
+    dialog().dispatchEvent(new Event('cancel', { cancelable: true }));
+    expectClosed();
+    release();
+    await settle();
+    expect(dialog().open).toBe(false);
+    expect(status().textContent).toBe(SORRY);
+    expect(document.activeElement).toBe(toggle());
+    open();
+    expect(field<HTMLTextAreaElement>('message').value).toBe('Hello');
+    expect(submitButton().disabled).toBe(false);
+  });
+
+  it('opens and closes with the open attribute when showModal is unavailable', () => {
+    const proto = HTMLDialogElement.prototype as unknown as Record<string, unknown>;
+    const showModal = proto.showModal;
+    const close = proto.close;
+    proto.showModal = undefined;
+    proto.close = undefined;
+    try {
+      mount(vi.fn());
+      open();
+      expect(dialog().hasAttribute('open')).toBe(true);
+      expect(document.activeElement).toBe(field('email'));
+      cancelButton().click();
+      expect(dialog().hasAttribute('open')).toBe(false);
+      expect(document.activeElement).toBe(toggle());
+    } finally {
+      proto.showModal = showModal;
+      proto.close = close;
+    }
   });
 
   it('points to the contact section when data-email is missing', async () => {
     root.removeAttribute('data-email');
     mount(vi.fn(async () => jsonResponse(503, 'unavailable')));
-    toggle().click();
+    open();
     await submitContact('jane@example.com');
-    expect(status().textContent).toBe("Couldn't send right now — please use the contact details below.");
-    expect(status().querySelector('a')?.getAttribute('href')).toBe('#contact');
+    expect(note().textContent).toBe("Couldn't send right now — please use the contact details below.");
+    expect(note().querySelector('a')?.getAttribute('href')).toBe('#contact');
   });
 });
