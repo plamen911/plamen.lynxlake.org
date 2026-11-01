@@ -15,7 +15,16 @@ const CONTACT_FAIL_START = "Couldn't send right now — ";
 const CONTACT_MAX_NAME = 100;
 const CONTACT_MAX_MESSAGE = 1000;
 const CONTACT_TIMEOUT_MS = 30_000;
-const EMAIL_SHAPE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+// The same shapes the server enforces (src/chat/server/contact.ts).
+const EMAIL_SHAPE = /^[^\s@,;<>()"]+@[^\s@.,;<>()"]+(\.[^\s@.,;<>()"]+)+$/;
+const NAME_CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g;
+const MESSAGE_CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
+
+/** The message as the server accepts it: CRLF → LF, tab → space, other control characters removed. */
+export const cleanMessage = (text: string): string =>
+  text.replace(/\r\n?/g, '\n').replace(/\t/g, ' ').replace(MESSAGE_CONTROL, '').trim();
+/** The name as the server accepts it: one line, no control, bidi or separator characters. */
+export const cleanName = (text: string): string => text.replace(/[\t\r\n]+/g, ' ').replace(NAME_CONTROL, '').trim();
 
 const FALLBACK_START = 'The assistant is unavailable right now — ';
 const FALLBACK_NO_EMAIL = 'please use the contact details below.';
@@ -406,8 +415,8 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     contactEmail.control.removeAttribute('aria-describedby');
 
     const body: Record<string, string> = { email: address };
-    const name = contactName.control.value.trim().slice(0, CONTACT_MAX_NAME);
-    const message = contactMessage.control.value.trim().slice(0, CONTACT_MAX_MESSAGE);
+    const name = cleanName(contactName.control.value).slice(0, CONTACT_MAX_NAME);
+    const message = cleanMessage(contactMessage.control.value).slice(0, CONTACT_MAX_MESSAGE);
     if (name) body.name = name;
     if (message) body.message = message;
 

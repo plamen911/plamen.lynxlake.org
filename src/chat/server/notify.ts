@@ -18,14 +18,23 @@ export interface QuestionNotice {
   now: Date;
 }
 
+/** Telegram must answer within this time, or the send counts as failed. */
+export const TELEGRAM_TIMEOUT_MS = 8000;
+
 export type SendResult = 'sent' | 'unconfigured' | 'failed';
 
 /**
  * Posts plain text (no parse_mode) to the configured Telegram chat. Never
  * throws: reports `unconfigured` when the token or chat id is missing, and
- * `failed` (after logging) when Telegram does not accept the message.
+ * `failed` (after logging) when Telegram does not accept the message or does
+ * not answer within `timeoutMs`.
  */
-export async function sendTelegram(config: NotifyConfig, text: string, fetchFn: typeof fetch = fetch): Promise<SendResult> {
+export async function sendTelegram(
+  config: NotifyConfig,
+  text: string,
+  fetchFn: typeof fetch = fetch,
+  timeoutMs: number = TELEGRAM_TIMEOUT_MS,
+): Promise<SendResult> {
   const token = config.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = config.TELEGRAM_CHAT_ID?.trim();
   if (!token || !chatId) return 'unconfigured';
@@ -34,6 +43,7 @@ export async function sendTelegram(config: NotifyConfig, text: string, fetchFn: 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (res.ok) return 'sent';
     console.error('chat: telegram send failed', res.status);

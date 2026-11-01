@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleContact, onRequest } from '../../functions/api/contact';
 import { parseContactRequest } from '../../src/chat/server/contact';
 import type { Env } from '../../src/chat/server/env';
+import { pruneRate } from '../../src/chat/server/limits';
 import { issueSession } from '../../src/chat/server/session';
 import { resetTables } from './helpers';
 
@@ -130,6 +131,13 @@ describe('handleContact: validation', () => {
     ['a newline in the name', { email: 'jane@example.com', name: 'Jane\nDoe' }],
     ['a control character in the email', { email: 'ja\u0000ne@example.com' }],
     ['an empty Turnstile token', { email: 'jane@example.com', turnstileToken: '' }],
+    ...[',', ';', '<', '>', '(', ')', '"', ' '].map((c) => [`an email with ${JSON.stringify(c)}`, { email: `jane${c}x@example.com` }] as [string, object]),
+    ['two addresses', { email: 'jane@example.com,bob@example.com' }],
+    ['a display-name address', { email: 'Jane <jane@example.com>' }],
+    ...['\u2028', '\u2029', '\u202a', '\u202e', '\u2066', '\u2069'].flatMap((c) => [
+      [`U+${c.codePointAt(0)!.toString(16)} in the name`, { email: 'jane@example.com', name: `Ja${c}ne` }],
+      [`U+${c.codePointAt(0)!.toString(16)} in the email`, { email: `ja${c}ne@example.com` }],
+    ] as [string, object][]),
   ])('returns 400 invalid for %s', async (_name, body) => {
     const res = await handleContact(contactRequest(body, COOKIE), makeEnv(), NOW);
     expect(res.status).toBe(400);
@@ -184,10 +192,48 @@ describe('handleContact: rate limit', () => {
     expect(res.status).toBe(429);
   });
 
+  it('caps contact requests at 50 per UTC day across all visitors', async () => {
+    for (let i = 0; i < 50; i++) {
+      const res = await handleContact(
+        contactRequest(CONTACT, { Cookie: cookieFor(NOW.getTime() - i * 1000), 'CF-Connecting-IP': `198.51.100.${i}` }),
+        makeEnv(),
+        NOW,
+      );
+      expect(res.status, `request ${i + 1}`).toBe(200);
+    }
+    const res = await handleContact(
+      contactRequest(CONTACT, { Cookie: cookieFor(NOW.getTime() - 99_000), 'CF-Connecting-IP': '192.0.2.1' }),
+      makeEnv(),
+      NOW,
+    );
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({ error: 'rate_limited' });
+    expect(telegramCalls()).toHaveLength(50);
+
+    // Pruning later the same day keeps the day's count; the next UTC day starts afresh.
+    const evening = new Date('2026-10-31T23:30:00Z');
+    await pruneRate(db, evening);
+    const late = await handleContact(contactRequest(CONTACT, { Cookie: cookieFor(evening.getTime()), 'CF-Connecting-IP': '192.0.2.2' }), makeEnv(), evening);
+    expect(late.status).toBe(429);
+    const tomorrow = new Date('2026-11-01T00:30:00Z');
+    await pruneRate(db, tomorrow);
+    const day = await db.prepare("SELECT count(*) AS n FROM rate WHERE bucket LIKE 'contact:day:%'").first<{ n: number }>();
+    expect(day?.n).toBe(0);
+    const next = await handleContact(contactRequest(CONTACT, { Cookie: cookieFor(tomorrow.getTime()), 'CF-Connecting-IP': '192.0.2.3' }), makeEnv(), tomorrow);
+    expect(next.status).toBe(200);
+  });
+
+  it('does not count requests refused by the per-visitor limit against the daily cap', async () => {
+    for (let i = 0; i < 6; i++) await handleContact(contactRequest(CONTACT, COOKIE), makeEnv(), NOW);
+    const row = await db.prepare("SELECT count FROM rate WHERE bucket LIKE 'contact:day:%'").first<{ count: number }>();
+    expect(row?.count).toBe(3);
+  });
+
   it('uses buckets separate from the chat limit and stores no IP', async () => {
     await handleContact(contactRequest(CONTACT, COOKIE), makeEnv(), NOW);
     const rows = (await db.prepare('SELECT bucket, count FROM rate').all<{ bucket: string; count: number }>()).results;
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(3);
+    expect(rows.some((r) => r.bucket === 'contact:day:2026-10-31T23')).toBe(true);
     for (const row of rows) {
       expect(row.bucket.startsWith('contact:')).toBe(true);
       expect(row.bucket).not.toContain(IP);

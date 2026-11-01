@@ -393,6 +393,28 @@ describe('contact form', () => {
     expect(JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body))).toEqual({ email: 'jane@example.com' });
   });
 
+  it('replaces tabs with spaces and strips other control characters before sending', async () => {
+    const fetchFn = vi.fn(async () => ok());
+    mount(fetchFn);
+    toggle().click();
+    await submitContact('jane@example.com', 'Ja\u0007ne\tDoe', 'Role:\tBackend\u0000\r\nRemote\u001b ok');
+    expect(JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body))).toEqual({
+      email: 'jane@example.com',
+      name: 'Jane Doe',
+      message: 'Role: Backend\nRemote ok',
+    });
+  });
+
+  it('rejects an address list or a display-name address', async () => {
+    const fetchFn = vi.fn(async () => ok());
+    mount(fetchFn);
+    toggle().click();
+    for (const bad of ['a@example.com,b@example.com', 'Jane <jane@example.com>', 'a@example.com;b@example.com']) {
+      await submitContact(bad);
+      expect(fetchFn, bad).not.toHaveBeenCalled();
+    }
+  });
+
   it('gets a Turnstile token on 401 and retries once', async () => {
     const fetchFn = vi.fn().mockResolvedValueOnce(jsonResponse(401, 'verify')).mockResolvedValueOnce(ok());
     const getTurnstileToken = vi.fn(async () => 'tok-9');

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MAX_NOTIFY_CHARS, notifyContact, notifyQuestion, sendTelegram } from '../src/chat/server/notify';
+import { MAX_NOTIFY_CHARS, notifyContact, notifyQuestion, sendTelegram, TELEGRAM_TIMEOUT_MS } from '../src/chat/server/notify';
 
 const NOW = new Date('2026-11-01T19:30:00Z');
 const TG = { TELEGRAM_BOT_TOKEN: '123:abc', TELEGRAM_CHAT_ID: '42' };
@@ -83,6 +83,23 @@ describe('sendTelegram', () => {
     expect(await sendTelegram(TG, 'x', vi.fn(async () => new Response('no', { status: 400 })))).toBe('failed');
     expect(await sendTelegram(TG, 'x', vi.fn(async () => { throw new Error('down'); }))).toBe('failed');
     error.mockRestore();
+  });
+});
+
+describe('sendTelegram timeout', () => {
+  it('passes an abort signal and reports failed when Telegram does not answer in time', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const hang = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => init.signal!.addEventListener('abort', () => reject(init.signal!.reason))),
+    );
+    expect(await sendTelegram(TG, 'x', hang as unknown as typeof fetch, 20)).toBe('failed');
+    expect((hang.mock.calls[0]![1] as RequestInit).signal).toBeInstanceOf(AbortSignal);
+    error.mockRestore();
+  });
+
+  it('defaults to an 8 second timeout', () => {
+    expect(TELEGRAM_TIMEOUT_MS).toBe(8000);
   });
 });
 

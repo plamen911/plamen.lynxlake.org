@@ -10,6 +10,8 @@ export const MAX_NAME_CHARS = 100;
 export const MAX_MESSAGE_CHARS = 1000;
 /** Contact requests allowed per visitor per hour, and per session. */
 export const CONTACT_LIMIT = 3;
+/** Contact requests allowed per UTC day across all visitors. */
+export const CONTACT_DAILY_CAP = 50;
 const MAX_TOKEN_CHARS = 2048;
 
 type ErrorCode = 'invalid' | 'verify' | 'rate_limited' | 'unavailable';
@@ -31,9 +33,12 @@ export interface ContactRequest {
 }
 
 // C0 controls, DEL and C1 controls. The message may keep \n; nothing else may.
-const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
+// The name and email also may not hold line/paragraph separators or bidi
+// embeddings, overrides and isolates (U+2028-2029, U+202A-202E, U+2066-2069).
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/;
 const CONTROL_EXCEPT_NEWLINE = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/;
-const EMAIL_SHAPE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+/** One plain `local@domain.tld` address: no spaces, list separators, quotes, comments or angle brackets. */
+const EMAIL_SHAPE = /^[^\s@,;<>()"]+@[^\s@.,;<>()"]+(\.[^\s@.,;<>()"]+)+$/;
 
 /** An optional text field: absent, or a string that is trimmed (blank → absent). Null if invalid. */
 function optional(value: unknown, max: number, control: RegExp): { value?: string } | null {
@@ -80,7 +85,8 @@ const errText = (err: unknown): string => (err instanceof Error ? err.message : 
  * POST /api/contact: a visitor leaves an email (plus optional name and
  * message) for Plamen to reply to. Order: config → validate → session or
  * Turnstile (exactly as the chat; a pass issues the session cookie) → rate
- * (3 per visitor per hour, 3 per session) → send to Telegram, awaited.
+ * (3 per visitor per hour, 3 per session, 50 per UTC day in all) → send to
+ * Telegram, awaited.
  *
  * 200 `{ok:true}` only once Telegram has accepted the message; if Telegram is
  * unconfigured or fails, 503 `unavailable`, so the visitor is never told it was
@@ -141,6 +147,11 @@ export async function handleContact(
       CONTACT_LIMIT,
     );
     if (!visitorOk || !sessionOk) return errorResponse('rate_limited', setCookie);
+    // Global daily cap, counted only for requests within the per-visitor limits.
+    // The key ends with the day's last hour (`YYYY-MM-DDT23`), so pruneRate keeps it all day.
+    if (!(await checkAndCountRate(env.DB, `contact:day:${dayKey(now)}T23`, CONTACT_DAILY_CAP))) {
+      return errorResponse('rate_limited', setCookie);
+    }
   } catch (err) {
     console.error('contact: D1 error', errText(err));
     return errorResponse('unavailable', setCookie);
