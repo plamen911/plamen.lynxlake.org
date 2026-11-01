@@ -8,7 +8,8 @@ const FALLBACK = `The assistant is unavailable right now — email me at ${EMAIL
 const TITLE = "Ask an AI assistant about Plamen's work";
 const NOTICE =
   'Answers are AI-generated from this page and may be wrong — for anything important, email me. ' +
-  'Questions are stored for 30 days, without IP addresses, so I can see what people ask.';
+  'Questions are stored for 30 days, without IP addresses, so I can see what people ask. ' +
+  "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
 
 type FetchArgs = [input: RequestInfo | URL, init?: RequestInit];
 
@@ -312,5 +313,163 @@ describe('mountChat', () => {
     mount(vi.fn(), { siteKey: '' });
     input().dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
     expect(document.querySelector('script[src*="challenges.cloudflare.com"]')).toBeNull();
+  });
+});
+
+describe('contact form', () => {
+  const TOGGLE = 'Want Plamen to get back to you? Leave your email';
+  const THANKS = 'Thanks — Plamen will reply by email.';
+  const SORRY = `Couldn't send right now — please email ${EMAIL}.`;
+
+  const toggle = () => root.querySelector<HTMLButtonElement>('button.chat-contact-toggle')!;
+  const contactForm = () => root.querySelector<HTMLFormElement>('form.chat-contact')!;
+  const field = <T extends HTMLElement>(name: string) => contactForm().querySelector<T>(`[name="${name}"]`)!;
+  const submitButton = () => contactForm().querySelector<HTMLButtonElement>('button[type="submit"]')!;
+  const status = () => root.querySelector<HTMLElement>('.chat-contact-status')!;
+  const ok = () => ({ ok: true, status: 200, body: null, json: async () => ({ ok: true }) }) as unknown as Response;
+
+  async function submitContact(email: string, name = '', message = ''): Promise<void> {
+    field<HTMLInputElement>('email').value = email;
+    field<HTMLInputElement>('name').value = name;
+    field<HTMLTextAreaElement>('message').value = message;
+    contactForm().dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await settle();
+  }
+
+  it('shows a toggle after the input row that opens a labelled form', () => {
+    mount(vi.fn());
+    const button = toggle();
+    expect(button.textContent).toBe(TOGGLE);
+    expect(button.type).toBe('button');
+    expect(root.querySelector('form.chat-form')!.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(contactForm().hidden).toBe(true);
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(button.getAttribute('aria-controls')).toBe(contactForm().id);
+
+    button.click();
+    expect(contactForm().hidden).toBe(false);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    const email = field<HTMLInputElement>('email');
+    expect(email.type).toBe('email');
+    expect(email.required).toBe(true);
+    expect(email.autocomplete).toBe('email');
+    expect(field<HTMLInputElement>('name').required).toBe(false);
+    expect(field<HTMLTextAreaElement>('message').tagName).toBe('TEXTAREA');
+    expect(field<HTMLTextAreaElement>('message').maxLength).toBe(1000);
+    for (const name of ['email', 'name', 'message']) {
+      expect(contactForm().querySelector(`label[for="${field(name).id}"]`)?.textContent?.trim(), name).toBeTruthy();
+    }
+    expect(submitButton().textContent).toBe('Send to Plamen');
+    expect(document.activeElement).toBe(email);
+    expect(status().getAttribute('aria-live')).toBe('polite');
+
+    button.click();
+    expect(contactForm().hidden).toBe(true);
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('posts the contact to /api/contact and thanks the visitor, hiding the form', async () => {
+    const fetchFn = vi.fn(async () => ok());
+    mount(fetchFn);
+    toggle().click();
+    await submitContact('  jane@example.com ', 'Jane', 'We have a role.');
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0] as unknown as FetchArgs;
+    expect(url).toBe('/api/contact');
+    expect(init?.method).toBe('POST');
+    expect(init?.credentials).toBe('same-origin');
+    expect(JSON.parse(String(init?.body))).toEqual({ email: 'jane@example.com', name: 'Jane', message: 'We have a role.' });
+    expect(status().textContent).toBe(THANKS);
+    expect(contactForm().hidden).toBe(true);
+    expect(toggle().getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(status());
+  });
+
+  it('omits empty optional fields', async () => {
+    const fetchFn = vi.fn(async () => ok());
+    mount(fetchFn);
+    toggle().click();
+    await submitContact('jane@example.com');
+    expect(JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body))).toEqual({ email: 'jane@example.com' });
+  });
+
+  it('gets a Turnstile token on 401 and retries once', async () => {
+    const fetchFn = vi.fn().mockResolvedValueOnce(jsonResponse(401, 'verify')).mockResolvedValueOnce(ok());
+    const getTurnstileToken = vi.fn(async () => 'tok-9');
+    mount(fetchFn, { getTurnstileToken });
+    toggle().click();
+    await submitContact('jane@example.com');
+    expect(getTurnstileToken).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String((fetchFn.mock.calls[1] as unknown as FetchArgs)[1]?.body)).turnstileToken).toBe('tok-9');
+    expect(status().textContent).toBe(THANKS);
+  });
+
+  it.each([
+    ['503', () => jsonResponse(503, 'unavailable')],
+    ['429', () => jsonResponse(429, 'rate_limited')],
+    ['a second 401', () => jsonResponse(401, 'verify')],
+  ])('shows the email fallback on %s and keeps the form', async (_name, make) => {
+    mount(vi.fn(async () => make()), { getTurnstileToken: async () => 'tok' });
+    toggle().click();
+    await submitContact('jane@example.com', '', 'Hello');
+    expect(status().textContent).toBe(SORRY);
+    expect(status().querySelector('a')?.getAttribute('href')).toBe(`mailto:${EMAIL}`);
+    expect(contactForm().hidden).toBe(false);
+    expect(field<HTMLTextAreaElement>('message').value).toBe('Hello');
+    expect(submitButton().disabled).toBe(false);
+    expect(document.activeElement).toBe(status());
+  });
+
+  it('shows the email fallback on a network error', async () => {
+    mount(vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
+    toggle().click();
+    await submitContact('jane@example.com');
+    expect(status().textContent).toBe(SORRY);
+  });
+
+  it('requires a valid email before sending', async () => {
+    const fetchFn = vi.fn(async () => ok());
+    mount(fetchFn);
+    toggle().click();
+    for (const bad of ['', '   ', 'not-an-email', 'jane@localhost']) {
+      await submitContact(bad);
+      expect(fetchFn, bad).not.toHaveBeenCalled();
+      expect(field('email').getAttribute('aria-invalid')).toBe('true');
+      expect(status().textContent).toBe('Please enter a valid email address.');
+      expect(document.activeElement).toBe(field('email'));
+    }
+    await submitContact('jane@example.com');
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(field('email').hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('is busy while sending and ignores a second submit', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const fetchFn = vi.fn(async () => {
+      await gate;
+      return ok();
+    });
+    mount(fetchFn);
+    toggle().click();
+    await submitContact('jane@example.com');
+    expect(submitButton().disabled).toBe(true);
+    expect(contactForm().getAttribute('aria-busy')).toBe('true');
+    contactForm().dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await settle();
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    release();
+    await settle();
+    expect(contactForm().getAttribute('aria-busy')).toBe('false');
+    expect(status().textContent).toBe(THANKS);
+  });
+
+  it('points to the contact section when data-email is missing', async () => {
+    root.removeAttribute('data-email');
+    mount(vi.fn(async () => jsonResponse(503, 'unavailable')));
+    toggle().click();
+    await submitContact('jane@example.com');
+    expect(status().textContent).toBe("Couldn't send right now — please use the contact details below.");
+    expect(status().querySelector('a')?.getAttribute('href')).toBe('#contact');
   });
 });

@@ -160,6 +160,61 @@ const { starters, email } = Astro.props;
     cursor: not-allowed;
   }
 
+  #chat-root .chat-contact-toggle {
+    margin-top: 0.75rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--hero-accent);
+    font: inherit;
+    font-size: var(--step--1);
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  #chat-root .chat-contact-toggle:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  #chat-root .chat-contact:not([hidden]) {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  #chat-root .chat-contact-field {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  #chat-root .chat-contact-field label {
+    font-size: var(--step--1);
+    color: var(--hero-muted);
+  }
+
+  #chat-root .chat-contact textarea {
+    resize: vertical;
+  }
+
+  #chat-root .chat-contact .chat-send {
+    justify-self: start;
+  }
+
+  #chat-root .chat-contact-status:not(:empty) {
+    margin-top: 0.75rem;
+    font-size: var(--step--1);
+  }
+
+  #chat-root .chat-contact-status a {
+    color: var(--hero-accent);
+  }
+
+  #chat-root .chat-contact-status:focus {
+    outline: none;
+  }
+
   #chat-root .chat-turnstile:not(:empty) {
     margin-top: 0.75rem;
   }

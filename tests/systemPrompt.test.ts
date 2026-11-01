@@ -48,6 +48,13 @@ describe('buildSystemPrompt', () => {
     }
   });
 
+  it('points visitors who want to reach Plamen to his email or the contact form, without a citation', () => {
+    expect(prompt).toContain(
+      '16. If the visitor wants to reach Plamen, or says they have a role, project or offer for him, say they can email him at plamen326@gmail.com or use "Leave your email" below the chat. This reply carries no citation.',
+    );
+    expect(prompt).toContain('and the contact reply (rule 16) carry NO citation');
+  });
+
   it('wraps the profile in delimiters before the rules', () => {
     const close = prompt.indexOf('</profile>');
     expect(prompt.indexOf('<profile>')).toBe(0);

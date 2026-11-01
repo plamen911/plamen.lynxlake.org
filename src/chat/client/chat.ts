@@ -5,7 +5,17 @@ export const CHAT_TITLE = "Ask an AI assistant about Plamen's work";
 const NOTICE_AI = 'Answers are AI-generated from this page and may be wrong — for anything important, ';
 const NOTICE_EMAIL = 'email me';
 const NOTICE_STORAGE = 'Questions are stored for 30 days, without IP addresses, so I can see what people ask.';
-export const NOTICE_LINE = `${NOTICE_AI}${NOTICE_EMAIL}. ${NOTICE_STORAGE}`;
+const NOTICE_CONTACT = "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
+export const NOTICE_LINE = `${NOTICE_AI}${NOTICE_EMAIL}. ${NOTICE_STORAGE} ${NOTICE_CONTACT}`;
+
+export const CONTACT_TOGGLE = 'Want Plamen to get back to you? Leave your email';
+export const CONTACT_THANKS = 'Thanks — Plamen will reply by email.';
+const CONTACT_INVALID = 'Please enter a valid email address.';
+const CONTACT_FAIL_START = "Couldn't send right now — ";
+const CONTACT_MAX_NAME = 100;
+const CONTACT_MAX_MESSAGE = 1000;
+const CONTACT_TIMEOUT_MS = 30_000;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 const FALLBACK_START = 'The assistant is unavailable right now — ';
 const FALLBACK_NO_EMAIL = 'please use the contact details below.';
@@ -36,6 +46,8 @@ export interface ChatMessage {
 
 export interface MountOptions {
   endpoint: string;
+  /** Where the "Leave your email" form posts; defaults to /api/contact. */
+  contactEndpoint?: string;
   siteKey: string;
   fetchFn?: typeof fetch;
   getTurnstileToken?: () => Promise<string>;
@@ -105,7 +117,32 @@ function renderNotice(target: HTMLElement, email: string): void {
   }
   const link = el('a', undefined, NOTICE_EMAIL);
   link.href = `mailto:${email}`;
-  target.replaceChildren(document.createTextNode(NOTICE_AI), link, document.createTextNode(`. ${NOTICE_STORAGE}`));
+  target.replaceChildren(document.createTextNode(NOTICE_AI), link, document.createTextNode(`. ${NOTICE_STORAGE} ${NOTICE_CONTACT}`));
+}
+
+/** "Couldn't send right now — please email <email>." as a mailto link; without an email, a pointer to #contact. */
+function renderContactFailure(target: HTMLElement, email: string): void {
+  if (!email) {
+    const link = el('a', undefined, FALLBACK_NO_EMAIL.slice(0, -1));
+    link.href = '#contact';
+    target.replaceChildren(document.createTextNode(CONTACT_FAIL_START), link, document.createTextNode('.'));
+    return;
+  }
+  const link = el('a', undefined, email);
+  link.href = `mailto:${email}`;
+  target.replaceChildren(document.createTextNode(`${CONTACT_FAIL_START}please email `), link, document.createTextNode('.'));
+}
+
+/** A labelled field for the contact form. */
+function contactField<K extends 'input' | 'textarea'>(tag: K, name: string, labelText: string): { row: HTMLElement; control: HTMLElementTagNameMap[K] } {
+  const row = el('div', 'chat-contact-field');
+  const label = el('label', undefined, labelText);
+  const control = el(tag, 'chat-input');
+  control.id = `chat-contact-${name}`;
+  control.name = name;
+  label.htmlFor = control.id;
+  row.append(label, control);
+  return { row, control };
 }
 
 /** The contact email from `data-email` on the mount point (from profile.email), or '' if absent. */
@@ -171,10 +208,41 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   sendButton.type = 'submit';
   form.append(label, input, sendButton);
 
+  // "Leave your email": a toggle below the input row and an inline form.
+  const contactToggle = el('button', 'chat-contact-toggle', CONTACT_TOGGLE);
+  contactToggle.type = 'button';
+  const contactForm = el('form', 'chat-contact');
+  contactForm.id = 'chat-contact';
+  contactForm.hidden = true;
+  contactForm.setAttribute('aria-busy', 'false');
+  contactForm.setAttribute('aria-label', 'Leave your email for Plamen');
+  contactToggle.setAttribute('aria-controls', contactForm.id);
+  contactToggle.setAttribute('aria-expanded', 'false');
+  const contactEmail = contactField('input', 'email', 'Your email');
+  contactEmail.control.type = 'email';
+  contactEmail.control.required = true;
+  contactEmail.control.autocomplete = 'email';
+  contactEmail.control.maxLength = 254;
+  const contactName = contactField('input', 'name', 'Your name (optional)');
+  contactName.control.type = 'text';
+  contactName.control.autocomplete = 'name';
+  contactName.control.maxLength = CONTACT_MAX_NAME;
+  const contactMessage = contactField('textarea', 'message', 'Message (optional)');
+  contactMessage.control.maxLength = CONTACT_MAX_MESSAGE;
+  contactMessage.control.rows = 3;
+  const contactSend = el('button', 'chat-send', 'Send to Plamen');
+  contactSend.type = 'submit';
+  contactForm.append(contactEmail.row, contactName.row, contactMessage.row, contactSend);
+  const contactStatus = el('p', 'chat-contact-status');
+  contactStatus.id = 'chat-contact-status';
+  contactStatus.tabIndex = -1;
+  contactStatus.setAttribute('role', 'status');
+  contactStatus.setAttribute('aria-live', 'polite');
+
   const turnstileBox = el('div', 'chat-turnstile');
   const notice = el('p', 'chat-notice');
   renderNotice(notice, email);
-  wrapper.append(title, log, starterList, form, turnstileBox, notice);
+  wrapper.append(title, log, starterList, form, contactToggle, contactForm, contactStatus, turnstileBox, notice);
 
   const turnstile = opts.getTurnstileToken ? null : createTurnstile(opts.siteKey, turnstileBox);
   const getToken = opts.getTurnstileToken ?? (() => turnstile!.getToken());
@@ -280,6 +348,91 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
       clearTimeout(timer);
       setBusy(false);
       if (fromStarter) input.focus();
+    }
+  }
+
+  let contactBusy = false;
+
+  function setContactOpen(open: boolean): void {
+    contactForm.hidden = !open;
+    contactToggle.setAttribute('aria-expanded', String(open));
+  }
+
+  contactToggle.addEventListener('click', () => {
+    const open = contactToggle.getAttribute('aria-expanded') !== 'true';
+    setContactOpen(open);
+    if (open) {
+      contactStatus.replaceChildren();
+      contactEmail.control.focus();
+    }
+  });
+
+  function setContactBusy(value: boolean): void {
+    contactBusy = value;
+    contactSend.disabled = value;
+    contactSend.textContent = value ? 'Sending…' : 'Send to Plamen';
+    contactForm.setAttribute('aria-busy', String(value));
+  }
+
+  async function postContact(body: Record<string, string>, signal: AbortSignal): Promise<Response> {
+    const send = (token?: string) =>
+      fetchFn(opts.contactEndpoint ?? '/api/contact', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(token ? { ...body, turnstileToken: token } : body),
+        signal,
+      });
+    const response = await send();
+    return response.status === 401 ? send(await getToken()) : response;
+  }
+
+  contactForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void sendContact();
+  });
+
+  async function sendContact(): Promise<void> {
+    if (contactBusy) return;
+    const address = contactEmail.control.value.trim();
+    if (address === '' || address.length > 254 || !EMAIL_SHAPE.test(address)) {
+      contactEmail.control.setAttribute('aria-invalid', 'true');
+      contactEmail.control.setAttribute('aria-describedby', contactStatus.id);
+      contactStatus.textContent = CONTACT_INVALID;
+      contactEmail.control.focus();
+      return;
+    }
+    contactEmail.control.removeAttribute('aria-invalid');
+    contactEmail.control.removeAttribute('aria-describedby');
+
+    const body: Record<string, string> = { email: address };
+    const name = contactName.control.value.trim().slice(0, CONTACT_MAX_NAME);
+    const message = contactMessage.control.value.trim().slice(0, CONTACT_MAX_MESSAGE);
+    if (name) body.name = name;
+    if (message) body.message = message;
+
+    setContactBusy(true);
+    contactStatus.replaceChildren();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CONTACT_TIMEOUT_MS);
+    let sent = false;
+    try {
+      sent = (await postContact(body, controller.signal)).status === 200;
+    } catch {
+      sent = false;
+    } finally {
+      clearTimeout(timer);
+      setContactBusy(false);
+    }
+    if (sent) {
+      contactForm.reset();
+      setContactOpen(false);
+      contactStatus.textContent = CONTACT_THANKS;
+      contactStatus.focus();
+    } else {
+      // The send button was disabled while busy, which drops focus: move it to the message (and its mailto link).
+      renderContactFailure(contactStatus, email);
+      contactStatus.focus();
     }
   }
 
