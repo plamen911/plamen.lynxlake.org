@@ -156,6 +156,21 @@ describe('handleChat', () => {
     await c.settle();
   });
 
+  it('sends a Telegram notice with the question (no IP) when Telegram is configured', async () => {
+    const { model } = fakeModel();
+    const c = collector();
+    const env = makeEnv({ TELEGRAM_BOT_TOKEN: '123:abc', TELEGRAM_CHAT_ID: '42' });
+    const res = await handleChat(chatRequest({ ...question, turnstileToken: 'good' }), env, model, NOW, c.waitUntil);
+    expect(await res.text()).toBe(SSE_BODY);
+    await c.settle();
+    const tg = fetchSpy.mock.calls.find(([url]) => String(url).startsWith('https://api.telegram.org/'));
+    expect(tg).toBeDefined();
+    const text = JSON.parse((tg![1] as RequestInit).body as string).text as string;
+    expect(text).toContain('What does Plamen build?');
+    expect(text).toContain('new visitor');
+    expect(text).not.toContain(IP);
+  });
+
   it('accepts a session cookie without calling Turnstile and without re-issuing it', async () => {
     const { model } = fakeModel();
     const cookie = `chat_session=${issueSession('test-session', NOW.getTime())}`;

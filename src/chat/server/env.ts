@@ -33,6 +33,9 @@ export interface Env {
   PRICE_CACHE_WRITE_PER_MTOK: string;
   /** Comma-separated hostnames a Turnstile token may come from; `*.suffix` allows subdomains. */
   TURNSTILE_HOSTNAMES: string;
+  /** Optional: Telegram bot token and chat id for a message per question. Notifications are off when either is unset. */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
 }
 
 /** UTC period keys used by the limits and logs. */

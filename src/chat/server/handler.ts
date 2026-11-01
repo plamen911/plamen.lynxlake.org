@@ -5,6 +5,7 @@ import { dayKey, type Env } from './env';
 import { adjustSpend, checkAndCountRate, pruneRate, rateBucket, reserveSpend, sessionHash, visitorHash } from './limits';
 import { logQuestion, purgeQuestions } from './log';
 import { MAX_TOKENS, type ModelClient } from './model';
+import { notifyQuestion } from './notify';
 import { issueSession, readSessionCookie, sessionCookie, verifySession } from './session';
 import { parseHostnames, verifyTurnstile } from './turnstile';
 import { parseChatRequest, type ChatMessage } from './validate';
@@ -160,6 +161,13 @@ export async function handleChat(
     await adjustSpend(env.DB, now, -reserved).catch(() => {});
     return errorResponse('unavailable');
   }
+  const notified = notifyQuestion(env, {
+    question: messages[messages.length - 1]!.content,
+    host: new URL(request.url).host,
+    newVisitor: newSession,
+    now,
+  });
+  if (waitUntil) waitUntil(notified);
 
   // 6. Stream. The reservation is settled once the stream has ended, however it ends.
   type Outcome = 'completed' | 'prestream_failure' | 'kept';

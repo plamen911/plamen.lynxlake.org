@@ -9,3 +9,7 @@ SESSION_SECRET=a-long-random-string
 # PUBLIC_CF_ANALYTICS_TOKEN (see .env.production and the README). Cloudflare's
 # always-pass test site key is 1x00000000000000000000AA (pairs with the test secret
 # in evals-server.sh).
+
+# Optional: Telegram message per chat question (both must be set; see notify.ts)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
