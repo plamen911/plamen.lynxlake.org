@@ -219,7 +219,7 @@ export const profile: Profile = {
   education: [
     'Technical University of Gabrovo – Computer Systems & Technologies (2005)',
     'SoftUni – PHP Web Developer (2019)',
-    'SoftUni – Front-End Developer with JavaScript (2020)',
+    'SoftUni – Front-End Developer with JavaScript (2019)',
   ],
 
   languages: ['Bulgarian – native', 'English – B2 (working level)'],
