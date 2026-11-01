@@ -105,9 +105,11 @@ describe('public profile', () => {
     }
   });
 
-  it('says ADR Zone is live in both stores', () => {
+  it('says ADR Zone is live on the App Store only (not on Google Play)', () => {
     const own = profile.experience.find((r) => r.id === 'own-products');
-    expect(own?.highlights.join(' ')).toContain('App Store and Google Play');
+    const text = own?.highlights.join(' ') ?? '';
+    expect(text).toContain('live on the App Store');
+    expect(text).not.toMatch(/google play|both stores/i);
   });
 
   it('has three starter questions', () => {
