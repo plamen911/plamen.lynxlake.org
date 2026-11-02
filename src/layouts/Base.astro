@@ -47,6 +47,11 @@ const analyticsToken: string | undefined = import.meta.env.PUBLIC_CF_ANALYTICS_T
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <slot />
+    <script>
+      import { trackClicks } from '../chat/client/clicks';
+
+      trackClicks(document);
+    </script>
   </body>
 </html>
 

@@ -37,6 +37,7 @@ with an AI chat about his work and a "Leave your email" contact form, both serve
   prompt injection, Bulgarian, contact requests) and grades the answers; spends real (small) API money. `RUNS=3`
   repeats every case.
 - `npm run questions` - the last 100 questions asked in the chat, from the production D1 (needs `wrangler login`)
+- `npm run clicks` - clicks per link, in total and for the last 7 days, from the production D1 (needs `wrangler login`)
 
 ## Deployment
 
@@ -160,6 +161,18 @@ Validation: all three fields are required; email at most 254 chars and a single 
 allowed); no control characters, line separators or bidi overrides; body at most 8 KB. Auth is the same as the chat:
 a valid `chat_session` cookie, or a Turnstile token (which issues the cookie). Limits: 3 requests per visitor per
 hour, 3 per session, and 50 per UTC day across all visitors; over a limit it answers `rate_limited` 429.
+
+## Click counts
+
+`POST /api/click` (`functions/api/click.ts`, logic in `src/chat/server/clicks.ts`) counts clicks on the CV, email,
+LinkedIn, GitHub and project links, in place of an analytics suite. Links carry `data-click`
+(`src/data/clicks.ts` lists the accepted names); `src/chat/client/clicks.ts` sends a beacon on a left or middle click.
+"Open in new tab" from the context menu is not seen, and browsers or blockers that drop the beacon aren't counted.
+
+The `clicks` table holds totals per link per UTC day and nothing about the visitor: no cookie, and the IP is only
+hashed for the hourly rate bucket. The request must come from the same origin; limits are 30 counted per visitor per
+hour and 2000 per UTC day in all. It answers 204, or 400/403/429/503 with no body. There is no Turnstile, as a beacon
+can't pass one, so treat the totals as a guide. `npm run clicks` prints them (needs `wrangler login`).
 
 ## Chat widget
 

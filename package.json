@@ -13,7 +13,8 @@
     "evals": "tsx scripts/chat-evals.ts",
     "evals:server": "bash scripts/evals-server.sh",
     "check-public": "tsx scripts/check-public.ts",
-    "questions": "wrangler d1 execute plamen-site --remote --command \"SELECT ts, question FROM questions ORDER BY ts DESC LIMIT 100\""
+    "questions": "wrangler d1 execute plamen-site --remote --command \"SELECT ts, question FROM questions ORDER BY ts DESC LIMIT 100\"",
+    "clicks": "wrangler d1 execute plamen-site --remote --command \"SELECT link, SUM(count) AS total, SUM(CASE WHEN day >= date('now', '-6 days') THEN count ELSE 0 END) AS last_7_days FROM clicks GROUP BY link ORDER BY total DESC\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

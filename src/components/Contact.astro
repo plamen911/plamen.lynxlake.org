@@ -12,11 +12,11 @@ const { links } = profile;
   <h2 id="contact-title" class="section-title">How to work with him</h2>
   <div class="grid">
     <div class="reach">
-      <p class="email"><a href={`mailto:${profile.email}`} target="_blank" rel="noopener">{profile.email}</a></p>
+      <p class="email"><a data-click="email" href={`mailto:${profile.email}`} target="_blank" rel="noopener">{profile.email}</a></p>
       <ul class="links">
-        <li><a href={links.linkedin.href} target="_blank" rel="noopener noreferrer">{links.linkedin.label}</a></li>
-        <li><a href={links.github.href} target="_blank" rel="noopener noreferrer">{links.github.label}</a></li>
-        <li><a href={links.cv.href} target="_blank" rel="noopener">{links.cv.label}</a></li>
+        <li><a data-click="linkedin" href={links.linkedin.href} target="_blank" rel="noopener noreferrer">{links.linkedin.label}</a></li>
+        <li><a data-click="github" href={links.github.href} target="_blank" rel="noopener noreferrer">{links.github.label}</a></li>
+        <li><a data-click="cv" href={links.cv.href} target="_blank" rel="noopener">{links.cv.label}</a></li>
       </ul>
       <p class="location">{profile.location}</p>
     </div>

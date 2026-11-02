@@ -119,6 +119,7 @@ function renderFallback(target: HTMLElement, email: string): void {
   }
   const link = el('a', undefined, email);
   link.href = `mailto:${email}`;
+  link.dataset.click = 'email';
   target.replaceChildren(document.createTextNode(`${FALLBACK_START}email me at `), link, document.createTextNode('.'));
 }
 
@@ -130,6 +131,7 @@ function renderNotice(target: HTMLElement, email: string): void {
   }
   const link = el('a', undefined, NOTICE_EMAIL);
   link.href = `mailto:${email}`;
+  link.dataset.click = 'email';
   target.replaceChildren(document.createTextNode(NOTICE_AI), link, document.createTextNode(`. ${NOTICE_STORAGE} ${NOTICE_CONTACT}`));
 }
 
@@ -143,6 +145,7 @@ function renderContactFailure(target: HTMLElement, email: string): void {
   }
   const link = el('a', undefined, email);
   link.href = `mailto:${email}`;
+  link.dataset.click = 'email';
   target.replaceChildren(document.createTextNode(`${CONTACT_FAIL_START}please email `), link, document.createTextNode('.'));
 }
 
