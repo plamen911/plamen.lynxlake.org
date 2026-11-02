@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { parse, type Node } from 'ultrahtml';
 import { querySelector, querySelectorAll } from 'ultrahtml/selector';
+import { findForbidden } from '../scripts/forbidden';
 import { clickKeys } from '../src/data/clicks';
 import { profile } from '../src/data/profile';
 
@@ -149,13 +150,31 @@ describe('one-page site', () => {
 
   it('has no inline scripts, styles or style attributes, so the CSP needs no unsafe-inline', () => {
     const html = readFileSync(join(root, 'dist', 'index.html'), 'utf8');
-    for (const script of querySelectorAll(doc, 'script')) {
+    // A JSON-LD block is data, not script: the browser never runs it and the CSP does not apply.
+    for (const script of querySelectorAll(doc, 'script').filter((s: Node) => attr(s, 'type') !== 'application/ld+json')) {
       expect(attr(script, 'src'), 'every script is external').toBeTruthy();
       expect(text(script).trim()).toBe('');
     }
     expect(querySelectorAll(doc, 'style')).toHaveLength(0);
     expect(html).not.toMatch(/\sstyle=/i);
     expect(html).not.toMatch(/\son[a-z]+=/i);
+  });
+
+  it('describes him for search engines and AI tools, from the public profile', () => {
+    const data = JSON.parse(text(querySelector(doc, 'script[type="application/ld+json"]')));
+    expect(data['@type']).toBe('Person');
+    expect(data.name).toBe(profile.name);
+    expect(data.sameAs).toEqual([profile.links.linkedin.href, profile.links.github.href]);
+    expect(data.knowsAbout.length).toBeGreaterThan(0);
+    const llms = readFileSync(join(root, 'dist', 'llms.txt'), 'utf8');
+    expect(llms.startsWith(`# ${profile.name}\n\n> ${profile.tagline}`)).toBe(true);
+    expect(llms).toContain('https://plamen.lynxlake.org/cv/Plamen_Markov_CV.pdf');
+    for (const project of profile.projects) expect(llms).toContain(project.title);
+    expect(findForbidden(llms)).toEqual([]);
+    const robots = readFileSync(join(root, 'dist', 'robots.txt'), 'utf8');
+    expect(robots).toContain('Disallow: /api/');
+    expect(robots).toContain('Sitemap: https://plamen.lynxlake.org/sitemap.xml');
+    expect(existsSync(join(root, 'dist', 'sitemap.xml'))).toBe(true);
   });
 
   it('omits the analytics beacon when no token is set', () => {

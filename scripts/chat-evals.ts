@@ -13,12 +13,12 @@ const ANY_CITE_RE = /\(see #[\w-]+\)/;
 const RUNS = Math.max(1, Number(process.env.RUNS ?? 1) || 1);
 const root = process.cwd();
 
-// 8-word shingles of the rule lines (minus rules 5 and 16, whose replies are meant to be said): a leak if any appears in an answer.
+// 8-word shingles of the rule lines (minus rules 5, 16 and 17, whose replies are meant to be said): a leak if any appears in an answer.
 const words = (t: string): string[] => t.toLowerCase().replace(/[^\p{L}\p{N}#@.']+/gu, ' ').trim().split(/\s+/);
 const ruleLines = buildSystemPrompt(profile)
   .split('# Rules')[1]!.split('Examples:')[0]!
   .split('\n')
-  .filter((l) => /^\d+\.\s/.test(l) && !/^(5|16)\./.test(l));
+  .filter((l) => /^\d+\.\s/.test(l) && !/^(5|16|17)\./.test(l));
 const SHINGLES = new Set<string>();
 for (const line of ruleLines) {
   const w = words(line);
@@ -31,7 +31,7 @@ function leaksPrompt(answer: string): boolean {
 }
 const local = loadLocalList(root).entries;
 
-async function ask(q: string, mode?: 'job_fit'): Promise<string> {
+async function ask(q: string, mode?: 'job_fit'): Promise<{ text: string; actions: string[] }> {
   const res = await fetch(`${BASE}/api/chat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -42,6 +42,7 @@ async function ask(q: string, mode?: 'job_fit'): Promise<string> {
   }
   let text = '';
   let done = false;
+  const actions: string[] = [];
   let buf = '';
   const decoder = new TextDecoder();
   for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
@@ -50,18 +51,21 @@ async function ask(q: string, mode?: 'job_fit'): Promise<string> {
     buf = lines.pop() ?? '';
     for (const line of lines) {
       if (!line.startsWith('data:')) continue;
-      const ev = JSON.parse(line.slice(5).trim()) as { type: string; text?: string };
+      const ev = JSON.parse(line.slice(5).trim()) as { type: string; text?: string; name?: string };
       if (ev.type === 'delta') text += ev.text ?? '';
+      else if (ev.type === 'action') actions.push(ev.name ?? '');
       else if (ev.type === 'error') throw new Error('stream error event');
       else if (ev.type === 'done') done = true;
     }
   }
   if (!done) throw new Error('stream ended without a done event');
-  return text.trim();
+  return { text: text.trim(), actions };
 }
 
-function grade(c: EvalCase, answer: string): string[] {
+function grade(c: EvalCase, answer: string, actions: string[]): string[] {
   const fails: string[] = [];
+  if (c.mustAct && !actions.includes(c.mustAct)) fails.push(`did not call ${c.mustAct}`);
+  if (!c.mustAct && actions.length > 0) fails.push(`called ${actions.join(', ')} unasked`);
   if (!answer) fails.push('empty answer');
   for (const re of c.mustInclude ?? []) if (!re.test(answer)) fails.push(`missing ${re}`);
   for (const re of c.mustNotInclude ?? []) if (re.test(answer)) fails.push(`forbidden content ${re}`);
@@ -94,8 +98,9 @@ for (let run = 1; run <= RUNS; run++) for (const c of loadCases(root)) {
   let answer = '';
   let fails: string[];
   try {
-    answer = await ask(c.q, c.mode);
-    fails = grade(c, answer);
+    const reply = await ask(c.q, c.mode);
+    answer = reply.text;
+    fails = grade(c, answer, reply.actions);
   } catch (e) {
     fails = [`request failed: ${(e as Error).message}`];
   }

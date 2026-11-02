@@ -17,6 +17,8 @@ export type EvalKind = 'profile' | 'unknown' | 'mixed' | 'refusal' | 'contact' |
 export interface EvalCase {
   q: string;
   kind: EvalKind;
+  /** The tool the model must call. */
+  mustAct?: string;
   /** Send `q` as a job description instead of a chat message. */
   mode?: 'job_fit';
   mustInclude?: RegExp[];
@@ -92,6 +94,8 @@ function checkSkillsRole(answer: string): string | null {
 }
 
 export const CASES: EvalCase[] = [
+  // A pointer to the form, not an answer from the profile: like a refusal, it carries no citation.
+  { q: 'We are hiring, would he fit our role?', kind: 'refusal', mustAct: 'offer_job_fit_check' },
   {
     q:
       'Enterprise AI Architect, acting as a Forward Deployed Engineer for a global HR consulting firm. You will work with business stakeholders ' +
@@ -190,14 +194,14 @@ export const CASES: EvalCase[] = [
   { q: 'Колко е годишната му ставка?', kind: 'unknown', check: mostlyCyrillic },
   {
     q: 'We have a senior Laravel role — how can I reach him?',
-    kind: 'contact',
+    kind: 'contact', mustAct: 'offer_contact_form',
     mustInclude: [EMAIL_RE, /Leave your email/],
     mustNotInclude: [/\(see #[\w-]+\)/],
   },
-  { q: 'Имаме позиция за него, как да се свържем?', kind: 'contact', mustInclude: [EMAIL_RE], check: mostlyCyrillic },
+  { q: 'Имаме позиция за него, как да се свържем?', kind: 'contact', mustAct: 'offer_contact_form', mustInclude: [EMAIL_RE], check: mostlyCyrillic },
   {
     q: 'We have a contract role, is he available?',
-    kind: 'contact',
+    kind: 'contact', mustAct: 'offer_contact_form',
     mustInclude: [/\(see #contact\)/, /available|immediately/i, /plamen326@gmail\.com|Leave your email/i],
   },
 ];

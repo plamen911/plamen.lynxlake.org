@@ -1,4 +1,4 @@
-export type SseEvent = { type: 'delta'; text: string } | { type: 'done' } | { type: 'error' };
+export type SseEvent = { type: 'delta'; text: string } | { type: 'action'; name: string } | { type: 'done' } | { type: 'error' };
 
 /**
  * Incremental parser for the chat's Server-Sent Events. `carry` is the
@@ -28,8 +28,9 @@ function toEvent(data: string): SseEvent | null {
     return null;
   }
   if (typeof value !== 'object' || value === null) return null;
-  const { type, text } = value as Record<string, unknown>;
+  const { type, text, name } = value as Record<string, unknown>;
   if (type === 'delta' && typeof text === 'string') return { type, text };
+  if (type === 'action' && typeof name === 'string') return { type, name };
   if (type === 'done' || type === 'error') return { type };
   return null;
 }

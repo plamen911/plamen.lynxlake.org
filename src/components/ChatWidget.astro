@@ -91,6 +91,45 @@ const { starters, email } = Astro.props;
     }
   }
 
+  #chat-root .chat-offer {
+    justify-self: start;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--hero-accent);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--hero-accent);
+    font: inherit;
+    font-size: var(--step--1);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  #chat-root .chat-offer:hover {
+    background: var(--hero-line);
+  }
+
+  #chat-root .chat-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--hero-muted);
+    font-size: var(--step--1);
+  }
+
+  #chat-root .chat-rate {
+    padding: 0.1rem 0.6rem;
+    border: 1px solid var(--hero-line);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--hero-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  #chat-root .chat-rate:hover {
+    border-color: var(--hero-accent);
+  }
+
   #chat-root .chat-starters {
     display: flex;
     flex-wrap: wrap;

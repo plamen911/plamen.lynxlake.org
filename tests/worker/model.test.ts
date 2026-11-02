@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Env } from '../../src/chat/server/env';
-import { anthropicClient } from '../../src/chat/server/model';
+import { anthropicClient, CHAT_TOOLS } from '../../src/chat/server/model';
 
 const env = {
   ANTHROPIC_API_KEY: 'test-key',
@@ -76,5 +76,32 @@ describe('anthropicClient', () => {
     const { text, usage } = anthropicClient(env, fetchFn).stream('S', [{ role: 'user', content: 'Hi' }]);
     for await (const _ of text) void _;
     expect(await usage).toEqual({ input_tokens: 12, output_tokens: 7, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 });
+  });
+
+  it('sends tools only when given, and reports the tools the model called', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const withTool = CANNED_SSE.replace(
+      event('message_delta', { delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 7 } }),
+      event('content_block_start', { index: 1, content_block: { type: 'tool_use', id: 'toolu_1', name: 'offer_contact_form', input: {} } }) +
+        event('content_block_delta', { index: 1, delta: { type: 'input_json_delta', partial_json: '{}' } }) +
+        event('content_block_stop', { index: 1 }) +
+        event('message_delta', { delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { output_tokens: 7 } }),
+    );
+    const fetchFn = (async (_: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(withTool, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }) as typeof fetch;
+    const client = anthropicClient(env, fetchFn);
+
+    const { text, actions } = client.stream('S', [{ role: 'user', content: 'Hi' }], undefined, CHAT_TOOLS);
+    const chunks: string[] = [];
+    for await (const t of text) chunks.push(t);
+    expect(chunks).toEqual(['Hello', ' there']);
+    expect(await actions).toEqual(['offer_contact_form']);
+    expect(bodies[0]!.tools).toEqual(CHAT_TOOLS);
+
+    const plain = client.stream('S', [{ role: 'user', content: 'Hi' }]);
+    for await (const _ of plain.text) void _;
+    expect(bodies[1]).not.toHaveProperty('tools');
   });
 });

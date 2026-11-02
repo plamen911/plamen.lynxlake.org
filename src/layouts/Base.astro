@@ -1,5 +1,7 @@
 ---
 import '../styles/tokens.css';
+import { personJsonLd } from '../data/discovery';
+import { profile } from '../data/profile';
 
 interface Props {
   title: string;
@@ -33,6 +35,8 @@ const analyticsToken: string | undefined = import.meta.env.PUBLIC_CF_ANALYTICS_T
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Plamen Markov — Backend engineer building AI into production systems" />
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="Profile for AI tools" />
+    <script type="application/ld+json" is:inline set:html={personJsonLd(profile)} />
     {
       analyticsToken && (
         <script

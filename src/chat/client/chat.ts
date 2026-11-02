@@ -4,7 +4,7 @@ import { createTurnstile } from './turnstile';
 export const CHAT_TITLE = "Ask an AI assistant about Plamen's work";
 const NOTICE_AI = 'Answers are AI-generated from this page and may be wrong — for anything important, ';
 const NOTICE_EMAIL = 'email me';
-const NOTICE_STORAGE = 'Questions and job descriptions are stored for 30 days, without IP addresses, so I can see what people ask.';
+const NOTICE_STORAGE = 'Questions, job descriptions and rated answers are stored for 30 days, without IP addresses, so I can see what people ask.';
 const NOTICE_CONTACT = "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
 export const NOTICE_LINE = `${NOTICE_AI}${NOTICE_EMAIL}. ${NOTICE_STORAGE} ${NOTICE_CONTACT}`;
 
@@ -40,6 +40,12 @@ const FIT_MAX_CHARS = 6000;
 const FIT_HISTORY_LINE = 'Check this job description against his profile.';
 const FIT_SHOWN_CHARS = 140;
 
+const RATE_PROMPT = 'Helpful?';
+const RATE_THANKS = 'Thanks for the feedback.';
+// Answers and the question shown are cut to what /api/feedback accepts.
+const RATE_MAX_QUESTION = 600;
+const RATE_MAX_ANSWER = 6000;
+
 const FALLBACK_START = 'The assistant is unavailable right now — ';
 const FALLBACK_NO_EMAIL = 'please use the contact details below.';
 
@@ -71,6 +77,8 @@ export interface MountOptions {
   endpoint: string;
   /** Where the "Leave your email" form posts; defaults to /api/contact. */
   contactEndpoint?: string;
+  /** Where answer ratings post; defaults to /api/feedback. */
+  feedbackEndpoint?: string;
   siteKey: string;
   fetchFn?: typeof fetch;
   getTurnstileToken?: () => Promise<string>;
@@ -386,6 +394,44 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     });
   }
 
+  /** Buttons the model asked for in the answer being streamed. */
+  const offers: string[] = [];
+
+  /** A button under an answer that opens one of the forms. Unknown names show nothing. */
+  function addOffer(name: string): void {
+    const offer = name === 'offer_contact_form' ? { label: 'Leave your email', open: openContact } : name === 'offer_job_fit_check' ? { label: 'Paste a job description', open: openFit } : null;
+    if (!offer) return;
+    const button = el('button', 'chat-offer', offer.label);
+    button.type = 'button';
+    button.addEventListener('click', offer.open);
+    log.append(button);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  /** "Helpful? Yes / No" under an answer. One vote; a failed send is not worth troubling the visitor with. */
+  function addRating(question: string, answer: string): void {
+    const row = el('div', 'chat-rating');
+    const prompt = el('span', undefined, RATE_PROMPT);
+    const vote = (value: 'up' | 'down', label: string): HTMLButtonElement => {
+      const button = el('button', 'chat-rate', label);
+      button.type = 'button';
+      button.setAttribute('aria-label', `${value === 'up' ? 'Helpful' : 'Not helpful'}: ${label}`);
+      button.addEventListener('click', () => {
+        row.textContent = RATE_THANKS;
+        void fetchFn(opts.feedbackEndpoint ?? '/api/feedback', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vote: value, question: question.slice(0, RATE_MAX_QUESTION), answer: answer.slice(0, RATE_MAX_ANSWER) }),
+        }).catch(() => {});
+      });
+      return button;
+    };
+    row.append(prompt, vote('up', 'Yes'), vote('down', 'No'));
+    log.append(row);
+    log.scrollTop = log.scrollHeight;
+  }
+
   /** Streams the answer into `bubble`; resolves with the full text only after `done`. */
   async function request(messages: ChatMessage[], fit: boolean, bubble: HTMLElement, signal: AbortSignal): Promise<string> {
     let response = await post(messages, fit, undefined, signal);
@@ -399,6 +445,7 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     const decoder = new TextDecoder();
     let carry = '';
     let text = '';
+    offers.length = 0;
     for (;;) {
       const { value, done } = await reader.read();
       const chunk = done ? decoder.decode() + '\n' : decoder.decode(value, { stream: true });
@@ -406,6 +453,10 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
       carry = parsed.carry;
       for (const event of parsed.events) {
         if (event.type === 'error') throw new ChatFailure('stream error');
+        if (event.type === 'action') {
+          offers.push(event.name);
+          continue;
+        }
         if (event.type === 'done') {
           if (text.trim() === '') throw new ChatFailure('empty answer');
           void reader.cancel().catch(() => {});
@@ -437,6 +488,8 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
       const messages = job === undefined ? trimHistory(history) : [{ role: 'user' as const, content: job }];
       const answer = await request(messages, job !== undefined, bubble, controller.signal);
       history.push({ role: 'assistant', content: answer });
+      for (const name of offers) addOffer(name);
+      addRating(shown, answer);
       return true;
     } catch {
       // Keep the history alternating: the failed question is not resent.

@@ -508,3 +508,43 @@ describe('handleChat, job-fit mode', () => {
     expect(worstCaseMicros(messages, prices, 'x'.repeat(50_000), FIT_MAX_TOKENS)).toBeGreaterThan(worstCaseMicros(messages, prices));
   });
 });
+
+describe('handleChat, tool calls', () => {
+  const cookie = () => ({ Cookie: `chat_session=${issueSession('test-session', NOW.getTime())}` });
+  const toolModel = (chunks: string[], names: string[]) => {
+    const seen: { tools?: unknown }[] = [];
+    const model: ModelClient = {
+      stream(_system, _messages, _maxTokens, tools) {
+        seen.push({ tools });
+        async function* text() {
+          yield* chunks;
+        }
+        return { text: text(), usage: Promise.resolve(USAGE), actions: Promise.resolve(names) };
+      },
+    };
+    return { model, seen };
+  };
+  const events = async (res: Response) =>
+    (await res.text()).split('\n').filter((l) => l.startsWith('data:')).map((l) => JSON.parse(l.slice(5)));
+
+  it('sends the known tools as action events, once each, before done', async () => {
+    const { model } = toolModel(['Hi'], ['offer_contact_form', 'offer_contact_form', 'rm_rf']);
+    const got = await events(await handleChat(chatRequest(question, cookie()), makeEnv(), model, NOW));
+    expect(got).toEqual([{ type: 'delta', text: 'Hi' }, { type: 'action', name: 'offer_contact_form' }, { type: 'done' }]);
+  });
+
+  it('still answers when the model calls a tool and writes nothing', async () => {
+    const { model } = toolModel([], ['offer_job_fit_check']);
+    const got = await events(await handleChat(chatRequest(question, cookie()), makeEnv(), model, NOW));
+    expect(got.map((e) => e.type)).toEqual(['delta', 'action', 'done']);
+  });
+
+  it('offers tools for a question but not for a job-fit check', async () => {
+    const { model, seen } = toolModel(['Hi'], []);
+    await (await handleChat(chatRequest(question, cookie()), makeEnv(), model, NOW)).text();
+    const job = { messages: [{ role: 'user', content: 'x'.repeat(50) }], mode: 'job_fit' };
+    await (await handleChat(chatRequest(job, cookie()), makeEnv(), model, NOW)).text();
+    expect(seen[0]!.tools).toBeTruthy();
+    expect(seen[1]!.tools).toBeUndefined();
+  });
+});

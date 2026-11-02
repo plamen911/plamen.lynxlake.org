@@ -34,3 +34,10 @@ describe('parseSse', () => {
     expect(events).toEqual([{ type: 'error' }]);
   });
 });
+
+describe('parseSse, actions', () => {
+  it('reads an action event, and ignores one without a name', () => {
+    const { events } = parseSse('data: {"type":"action","name":"offer_contact_form"}\ndata: {"type":"action"}\n', '');
+    expect(events).toEqual([{ type: 'action', name: 'offer_contact_form' }]);
+  });
+});

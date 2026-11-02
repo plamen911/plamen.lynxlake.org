@@ -15,6 +15,15 @@ const empty = (status: number): Response => new Response(null, { status, headers
 
 const errText = (err: unknown): string => (err instanceof Error ? err.message : 'unknown');
 
+/** True if the request's Origin is this site: refuses a missing or malformed one. */
+export function isSameOrigin(request: Request): boolean {
+  try {
+    return new URL(request.headers.get('Origin') ?? '').host === new URL(request.url).host;
+  } catch {
+    return false;
+  }
+}
+
 /** The link name from a request body, or null unless it is a known one. */
 export function parseClickRequest(body: unknown): string | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
@@ -41,13 +50,7 @@ export async function handleClick(
 ): Promise<Response> {
   if (!env.SESSION_SECRET || !env.DB) return empty(503);
 
-  let origin: string | null = null;
-  try {
-    origin = new URL(request.headers.get('Origin') ?? '').host;
-  } catch {
-    // Missing or malformed: refused below.
-  }
-  if (origin !== new URL(request.url).host) return empty(403);
+  if (!isSameOrigin(request)) return empty(403);
 
   if (Number(request.headers.get('Content-Length') ?? '0') > MAX_CLICK_BODY_BYTES) return empty(400);
   let link: string | null;

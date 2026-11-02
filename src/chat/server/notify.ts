@@ -63,6 +63,20 @@ export async function notifyQuestion(config: NotifyConfig, notice: QuestionNotic
   await sendTelegram(config, text, fetchFn);
 }
 
+export interface FeedbackNotice {
+  question: string;
+  answer: string;
+  host: string;
+  now: Date;
+}
+
+/** Posts an answer a visitor marked as not helpful. No-op when unconfigured; errors are logged, never thrown. */
+export async function notifyFeedback(config: NotifyConfig, notice: FeedbackNotice, fetchFn: typeof fetch = fetch): Promise<void> {
+  const cut = (s: string): string => (s.length > MAX_NOTIFY_CHARS ? s.slice(0, MAX_NOTIFY_CHARS) + '…' : s);
+  const text = `👎 Not helpful · ${notice.host} · ${utcMinute(notice.now)}\n\nQ: ${cut(notice.question)}\n\nA: ${cut(notice.answer)}`;
+  await sendTelegram(config, text, fetchFn);
+}
+
 export interface ContactNotice {
   email: string;
   name?: string;

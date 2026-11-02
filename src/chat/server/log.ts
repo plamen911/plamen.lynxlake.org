@@ -2,7 +2,7 @@ import type { D1Database } from './env';
 
 export const QUESTION_RETENTION_DAYS = 30;
 
-const cutoffIso = (now: Date): string => new Date(now.getTime() - QUESTION_RETENTION_DAYS * 86_400_000).toISOString();
+export const cutoffIso = (now: Date): string => new Date(now.getTime() - QUESTION_RETENTION_DAYS * 86_400_000).toISOString();
 
 const purgeStatement = (db: D1Database, now: Date) => db.prepare('DELETE FROM questions WHERE ts < ?').bind(cutoffIso(now));
 

@@ -4,7 +4,7 @@ import { costMicros, type Prices, type Usage } from './cost';
 import { dayKey, type Env } from './env';
 import { adjustSpend, checkAndCountRate, pruneRate, rateBucket, reserveSpend, sessionHash, visitorHash } from './limits';
 import { logQuestion, purgeQuestions } from './log';
-import { FIT_MAX_TOKENS, MAX_TOKENS, type ModelClient } from './model';
+import { CHAT_TOOLS, FIT_MAX_TOKENS, MAX_TOKENS, type ModelClient } from './model';
 import { notifyQuestion } from './notify';
 import { issueSession, readSessionCookie, sessionCookie, verifySession } from './session';
 import { parseHostnames, verifyTurnstile } from './turnstile';
@@ -13,6 +13,12 @@ import { parseChatRequest, type ChatMessage } from './validate';
 // Deterministic, so it is built once per isolate.
 const SYSTEM_PROMPT = buildSystemPrompt(profile);
 const FIT_SYSTEM_PROMPT = buildFitPrompt(profile);
+
+// A normal request's input also holds the tools, so its reservation counts them.
+const CHAT_INPUT = SYSTEM_PROMPT + JSON.stringify(CHAT_TOOLS);
+const OFFERED = new Set(CHAT_TOOLS.map((t) => t.name));
+/** Shown if the model calls a tool and writes nothing. */
+const OFFER_ONLY_TEXT = 'Please use the button below.';
 
 /** Job-fit checks allowed per visitor per hour; they also count towards the chat's limits. */
 export const FIT_LIMIT = 5;
@@ -72,7 +78,7 @@ const utf8Bytes = (s: string): number => new TextEncoder().encode(s).length;
  * input tokens; every input token is priced at the dearest input rate (a
  * cache write may cost more than plain input); output is the full budget.
  */
-export function worstCaseMicros(messages: ChatMessage[], prices: Prices, system = SYSTEM_PROMPT, maxTokens = MAX_TOKENS): number {
+export function worstCaseMicros(messages: ChatMessage[], prices: Prices, system = CHAT_INPUT, maxTokens = MAX_TOKENS): number {
   const inputTokens = utf8Bytes(system) + messages.reduce((n, m) => n + utf8Bytes(m.content) + 10, 0) + 50;
   const dearest = Math.max(prices.input, prices.cacheWrite, prices.cacheRead);
   return costMicros({ input_tokens: inputTokens, output_tokens: maxTokens }, { ...prices, input: dearest });
@@ -143,7 +149,7 @@ export async function handleChat(
     newSession = true;
   }
 
-  const reserved = worstCaseMicros(messages, config.prices, system, maxTokens);
+  const reserved = worstCaseMicros(messages, config.prices, fit ? system : CHAT_INPUT, maxTokens);
   try {
     // 3. Rate limit per hour: per visitor (IPv6 by /64) and per session; both are counted.
     const visitor = await visitorHash(ip, env.SESSION_SECRET, dayKey(now));
@@ -187,6 +193,7 @@ export async function handleChat(
   const ended = new Promise<Outcome>((resolve) => (settle = resolve));
   let usage: Promise<Usage> = Promise.reject(new Error('model not called'));
   usage.catch(() => {});
+  let actions: Promise<string[]> = Promise.resolve([]);
 
   const settlement = ended
     .then(async (outcome) => {
@@ -207,9 +214,10 @@ export async function handleChat(
   let iterator: AsyncIterator<string>;
   let first: IteratorResult<string>;
   try {
-    const result = model.stream(system, messages, maxTokens);
+    const result = model.stream(system, messages, maxTokens, fit ? undefined : CHAT_TOOLS);
     usage = result.usage;
     usage.catch(() => {});
+    if (result.actions) actions = result.actions.catch(() => []);
     iterator = result.text[Symbol.asyncIterator]();
     first = await iterator.next();
   } catch (err) {
@@ -222,6 +230,14 @@ export async function handleChat(
   const encoder = new TextEncoder();
   let sawText = false;
   const finish = async (controller: ReadableStreamDefaultController<Uint8Array>, outcome: Outcome) => {
+    if (outcome === 'completed') {
+      const offered = [...new Set(await actions)].filter((name) => OFFERED.has(name));
+      if (!sawText && offered.length > 0) {
+        sawText = true;
+        controller.enqueue(encoder.encode(sse({ type: 'delta', text: OFFER_ONLY_TEXT })));
+      }
+      for (const name of offered) controller.enqueue(encoder.encode(sse({ type: 'action', name })));
+    }
     settle(outcome);
     if (!waitUntil) await settlement;
     // A completed stream with no text at all is a failure for the visitor: never send an empty `done`.

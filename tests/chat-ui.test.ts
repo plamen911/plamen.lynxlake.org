@@ -8,7 +8,7 @@ const FALLBACK = `The assistant is unavailable right now — email me at ${EMAIL
 const TITLE = "Ask an AI assistant about Plamen's work";
 const NOTICE =
   'Answers are AI-generated from this page and may be wrong — for anything important, email me. ' +
-  'Questions and job descriptions are stored for 30 days, without IP addresses, so I can see what people ask. ' +
+  'Questions, job descriptions and rated answers are stored for 30 days, without IP addresses, so I can see what people ask. ' +
   "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
 
 type FetchArgs = [input: RequestInfo | URL, init?: RequestInit];
@@ -722,5 +722,52 @@ describe('job-fit check', () => {
     expect(body.mode).toBeUndefined();
     expect(body.messages.map((m: { role: string }) => m.role)).toEqual(['user', 'assistant', 'user']);
     expect(JSON.stringify(body.messages)).not.toContain('Must have');
+  });
+});
+
+describe('chat actions and ratings', () => {
+  const withAction = (name: string) => streamResponse(sse({ type: 'delta', text: 'Sure.' }, { type: 'action', name }, { type: 'done' }));
+
+  it('shows a button for an offered form, which opens it', async () => {
+    mount(vi.fn(async () => withAction('offer_contact_form')));
+    await ask('We have a role');
+    const button = root.querySelector<HTMLButtonElement>('.chat-offer')!;
+    expect(button.textContent).toBe('Leave your email');
+    button.click();
+    expect(root.querySelector('#chat-contact-dialog')!.hasAttribute('open')).toBe(true);
+  });
+
+  it('opens the job description form for the job-fit offer', async () => {
+    mount(vi.fn(async () => withAction('offer_job_fit_check')));
+    await ask('Would he fit?');
+    root.querySelector<HTMLButtonElement>('.chat-offer')!.click();
+    expect(root.querySelector('#chat-fit-dialog')!.hasAttribute('open')).toBe(true);
+  });
+
+  it('shows no button for an unknown action, and none on a plain answer', async () => {
+    mount(vi.fn(async () => withAction('delete_everything')));
+    await ask('Hi');
+    expect(root.querySelector('.chat-offer')).toBeNull();
+  });
+
+  it('sends one rating with the question and answer, then says thanks', async () => {
+    const fetchFn = vi.fn(async () => answer('Yes.'));
+    mount(fetchFn);
+    await ask('Is he available?');
+    const [yes, no] = root.querySelectorAll<HTMLButtonElement>('.chat-rate');
+    expect(yes!.textContent).toBe('Yes');
+    no!.click();
+    await settle();
+    const call = fetchFn.mock.calls[1] as unknown as FetchArgs;
+    expect(String(call[0])).toBe('/api/feedback');
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ vote: 'down', question: 'Is he available?', answer: 'Yes.' });
+    expect(root.querySelector('.chat-rating')!.textContent).toBe('Thanks for the feedback.');
+    expect(root.querySelector('.chat-rate')).toBeNull();
+  });
+
+  it('shows no rating when the answer failed', async () => {
+    mount(vi.fn(async () => jsonResponse(503, 'unavailable')));
+    await ask('Hi');
+    expect(root.querySelector('.chat-rating')).toBeNull();
   });
 });

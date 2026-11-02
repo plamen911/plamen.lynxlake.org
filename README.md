@@ -37,6 +37,7 @@ with an AI chat about his work and a "Leave your email" contact form, both serve
   prompt injection, Bulgarian, contact requests) and grades the answers; spends real (small) API money. `RUNS=3`
   repeats every case.
 - `npm run questions` - the last 100 questions asked in the chat, from the production D1 (needs `wrangler login`)
+- `npm run feedback` - the last 50 rated answers, from the production D1 (needs `wrangler login`)
 - `npm run clicks` - clicks per link, in total and for the last 7 days, from the production D1 (needs `wrangler login`)
 
 ## Deployment
@@ -72,6 +73,11 @@ precedence over it:
 The site URL is `site` in `astro.config.mjs`; it drives the canonical link, `og:url` and `og:image`. `public/og.png`
 (1200x630) and `public/favicon.ico` are generated from SVG by `npx tsx scripts/make-og-image.ts` (run by hand, output
 committed); `public/favicon.svg` is the source monogram.
+
+## For search engines and AI tools
+
+`public/robots.txt` allows everything except `/api/` and points to `public/sitemap.xml`. `src/data/discovery.ts` builds
+the page's JSON-LD `Person` block and `/llms.txt` (`src/pages/llms.txt.ts`) from the public profile.
 
 ## Security headers
 
@@ -151,6 +157,13 @@ technology and commenting on pay, and it reports conflicts with his terms. The j
 `[job-fit check]` and sent to Telegram like a question, cut to 1000 chars there. Evals cover a good fit, a poor fit,
 a role built around Claude Code skills, injection, a stated budget, a Bulgarian role and text that isn't a job description.
 
+### Chat actions
+
+For a normal question the model has two tools, `offer_contact_form` and `offer_job_fit_check` (`CHAT_TOOLS` in
+`src/chat/server/model.ts`). Calling one sends `data: {"type":"action","name":"…"}` before `done`, and the widget shows
+a button under the answer that opens that form. The tools can do nothing else, the visitor always has to click, unknown
+names are dropped on both sides, and a job-fit check gets no tools.
+
 ## Telegram notifications
 
 When `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set, every chat question is also sent to that Telegram chat
@@ -173,6 +186,15 @@ allowed); no control characters, line separators or bidi overrides; body at most
 a valid `chat_session` cookie, or a Turnstile token (which issues the cookie). Limits: 3 requests per visitor per
 hour, 3 per session, and 50 per UTC day across all visitors; over a limit it answers `rate_limited` 429.
 
+## Answer ratings
+
+`POST /api/feedback` (`functions/api/feedback.ts`, logic in `src/chat/server/feedback.ts`) takes
+`{ vote, question, answer }` from the "Helpful? Yes / No" row under each answer. It needs a valid `chat_session` cookie
+and the same origin, allows 20 ratings per visitor per hour, and keeps them for 30 days with no visitor id or IP. A "No"
+also goes to Telegram. It answers 204, or 400/401/403/429/503 with no body. The text comes from the browser, so treat it
+as a report. `npm run feedback` prints the last 50 (needs `wrangler login`). There is no scheduled digest: Pages
+Functions have no cron trigger.
+
 ## Click counts
 
 `POST /api/click` (`functions/api/click.ts`, logic in `src/chat/server/clicks.ts`) counts clicks on the CV, email,
@@ -189,7 +211,7 @@ can't pass one, so treat the totals as a guide. `npm run clicks` prints them (ne
 
 `src/components/ChatWidget.astro` mounts the client (`src/chat/client/chat.ts`) into `#chat-root` in the hero. Without
 JS the static starter links and the email stay. The widget is titled as an AI assistant; its notice says answers are
-AI-generated and may be wrong, that questions and job descriptions are kept for 30 days without IP addresses, and that an email left in the
+AI-generated and may be wrong, that questions, job descriptions and rated answers are kept for 30 days without IP addresses, and that an email left in the
 form goes only to Plamen and isn't stored on the site. The email address comes from `profile.email` via `data-email`
 on `#chat-root`.
 
