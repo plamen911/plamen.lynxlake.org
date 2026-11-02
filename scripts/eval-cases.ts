@@ -83,7 +83,10 @@ function checkSkillsRole(answer: string): string | null {
   const missing = fitSection(answer, 'Not shown in the profile:');
   if (!/skills/i.test(matches)) return 'Claude Code skills not listed as a match';
   if (/(authoring|creating|building|writing)?[^\n]*claude code skills/i.test(missing)) return 'Claude Code skills listed as not shown';
-  if (/on-?site|hybrid|in-office/i.test(missing)) return 'false conflict: the role offers remote work';
+  if (/\bon-?site\b|hybrid|in-office/i.test(missing)) return 'false conflict: the role offers remote work';
+  if (/open.?source/i.test(missing)) return 'open-source tooling listed as not shown';
+  // Nice-to-haves must not crowd out the essential gaps here. A poor fit may run longer: it has more to list.
+  if ((missing.match(/^- /gm) ?? []).length > 5) return 'more than five items not shown';
   if (/leading (other )?engineers|technical leadership/i.test(matches)) return 'leading engineers listed as a match';
   return null;
 }
@@ -91,12 +94,15 @@ function checkSkillsRole(answer: string): string | null {
 export const CASES: EvalCase[] = [
   {
     q:
-      'Enterprise AI Architect, acting as a Forward Deployed Engineer for a global HR consulting firm. Design, implement, test and maintain ' +
-      'reusable Claude Code Skills from business requirements, and evaluate them with realistic scenarios. Give technical leadership to the ' +
-      'other engineers: review, direction, unblocking. Must have: hands-on Claude Code; creating Claude Code Skills or comparable capabilities; ' +
-      'agentic workflows, tool use and context engineering; production software engineering; evaluating non-deterministic AI; owning standards, ' +
-      'shared components and release strategy for the whole capability. Nice to have: MCP servers, consulting background, HR technology. ' +
-      'Benefits: in-office, hybrid or remote flexibility.',
+      'Enterprise AI Architect, acting as a Forward Deployed Engineer for a global HR consulting firm. You will work with business stakeholders ' +
+      'and domain experts to understand their processes; analyse their requirements, documents and templates; design, implement, test and maintain ' +
+      'reusable Claude Code Skills with instructions, scripts and validation logic; evaluate them with realistic scenarios and acceptance criteria; ' +
+      'and give technical leadership to the other engineers: review, direction, unblocking. What you bring: strong hands-on experience with Claude Code; ' +
+      'creating Claude Code Skills or comparable capabilities; agentic workflows, tool use, prompt and context engineering; production software ' +
+      'engineering; turning business requirements into technical designs; evaluating non-deterministic AI; owning standards, shared components, ' +
+      'evaluation and release strategy for the whole capability; justifying platform-level decisions. Nice to have: plugins or MCP servers, evaluation ' +
+      'tooling, a consulting background, HR technology, internal developer tooling, and public artefacts such as open-source agent tooling, ' +
+      'published plugins, talks or writing. Benefits: international projects, in-office, hybrid or remote flexibility, learning budget.',
     kind: 'fit',
     mode: 'job_fit',
     mustInclude: [/^Fit: partial/im],

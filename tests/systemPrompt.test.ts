@@ -118,7 +118,7 @@ describe('job-fit prompt', () => {
 
   it('adds to the normal prompt, with the labels and the rules against invention and pay', () => {
     expect(prompt.startsWith(buildSystemPrompt(profile))).toBe(true);
-    for (const text of ['# Job-fit mode', 'Fit: strong, partial or weak.', 'Not shown in the profile:', 'Never comment on pay', 'Оценка:']) {
+    for (const text of ['# Job-fit mode', 'Fit: strong, partial or weak, and a full stop.', 'Not shown in the profile:', 'Never comment on pay', 'Оценка:']) {
       expect(prompt).toContain(text);
     }
     expect(prompt).toContain(profile.email);
