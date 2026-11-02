@@ -87,6 +87,7 @@ function checkSkillsRole(answer: string): string | null {
   if (/(authoring|creating|building|writing)?[^\n]*claude code skills/i.test(missing)) return 'Claude Code skills listed as not shown';
   if (/\bon-?site\b|hybrid|in-office/i.test(missing)) return 'false conflict: the role offers remote work';
   if (/open.?source/i.test(missing)) return 'open-source tooling listed as not shown';
+  if (!/requirements|stakeholder|business/i.test(matches)) return 'work with business people not listed as a match';
   // Nice-to-haves must not crowd out the essential gaps here. A poor fit may run longer: it has more to list.
   if ((missing.match(/^- /gm) ?? []).length > 5) return 'more than five items not shown';
   if (/leading (other )?engineers|technical leadership/i.test(matches)) return 'leading engineers listed as a match';
@@ -94,6 +95,7 @@ function checkSkillsRole(answer: string): string | null {
 }
 
 export const CASES: EvalCase[] = [
+  { q: 'Has he worked directly with business stakeholders?', kind: 'profile', mustInclude: [/requirements/i, /\(see #experience\)/] },
   // A pointer to the form, not an answer from the profile: like a refusal, it carries no citation.
   { q: 'We are hiring, would he fit our role?', kind: 'refusal', mustAct: 'offer_job_fit_check' },
   {

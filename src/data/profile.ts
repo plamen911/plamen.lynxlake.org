@@ -171,7 +171,8 @@ export const profile: Profile = {
       period: '2008 – present',
       summary:
         "Sole developer on production systems still in service, each owned end to end for over a decade: an insurance " +
-        "brokerage's platform and NPP Kozloduy's occupational-health system.",
+        "brokerage's platform and NPP Kozloduy's occupational-health system. He gathers the requirements directly from the " +
+        'business people who use these systems and turns them into working software.',
       highlights: [
         'Built the Laravel successor of an insurance platform and the migration layer that moved 26,000+ legacy policies into it, with a parity-tested cutover.',
         'Traced a report that had slowed from 0.24 s to 137 s to a non-sargable join and fixed it; deep pagination went from about 6 s to 0.1 s per page.',
