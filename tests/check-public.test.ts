@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { findForbidden, findLiterals, LOCAL_WHY, loadLocalList, parseLocalList, type LocalEntry } from '../scripts/forbidden';
+import { findForbidden, findLiterals, LOCAL_WHY, loadLocalList, parseLocalList, PUBLISHED_URLS, type LocalEntry } from '../scripts/forbidden';
 import { collectSources, formatHit, runCheck, scanRepo, scanSources } from '../scripts/check-public';
 
 const FAKE_LOCAL: LocalEntry[] = [
@@ -238,5 +238,19 @@ describe('check-public scanning', () => {
     expect(formatHit(local, true)).not.toMatch(/Acme|made-up/);
     expect(formatHit(local, false)).toContain('Acme Widgets Ltd');
     expect(formatHit(generic, true)).toContain('Skype');
+  });
+});
+
+describe('findForbidden: published URLs', () => {
+  // Built from parts, so this file does not itself trip the guard's local list.
+  const word = ['fire', 'service'].join('-');
+  const local: LocalEntry[] = [{ value: word, why: 'private' }];
+  const url = `https://${PUBLISHED_URLS[0]}`;
+
+  it('exempts only the exact published URL', () => {
+    expect(findForbidden(url, local)).toEqual([]);
+    expect(findForbidden(`He works for a ${word} unit`, local)).toHaveLength(1);
+    expect(findForbidden(`${url} and a ${word} unit`, local)).toHaveLength(1);
+    expect(findForbidden(`https://github.com/someone/${word}-skills`, local)).toHaveLength(1);
   });
 });

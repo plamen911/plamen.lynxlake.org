@@ -90,12 +90,12 @@ describe('one-page site', () => {
     }
   });
 
-  it('renders five project articles, the fire-report one without any link', () => {
+  it('renders five project articles, the fire-report one linking to its repo', () => {
     expect(querySelectorAll(doc, 'article.project').length).toBe(5);
     const card = querySelector(doc, 'article.project#project-fire-report-plugin');
     expect(card).toBeTruthy();
-    expect(querySelector(card, 'a')).toBeFalsy();
-    expect(profile.projects.find((p) => p.id === 'fire-report-plugin')?.links).toBeUndefined();
+    expect(attr(querySelector(card, 'a'), 'href')).toBe('https://github.com/plamen911/fire-service-skills');
+    expect(attr(querySelector(card, 'a'), 'data-click')).toBe('fire-report-plugin:github');
   });
 
   it('renders the experience roles and stack groups', () => {

@@ -26,10 +26,9 @@ describe('public profile', () => {
     ]);
   });
 
-  it('does not link the fire-report plugin', () => {
+  it('links the fire-report plugin to its public repo', () => {
     const plugin = profile.projects.find((p) => p.id === 'fire-report-plugin');
-    expect(plugin).toBeDefined();
-    expect(plugin?.links).toBeUndefined();
+    expect(plugin?.links?.map((l) => l.href)).toEqual(['https://github.com/plamen911/fire-service-skills']);
   });
 
   it('links the MCP server to its public repo', () => {

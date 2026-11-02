@@ -67,6 +67,7 @@ export const profile: Profile = {
         'About 10–15 minutes per report instead of 5–6 hours, from a phone. The LLM judge catches all six planted fabricated ' +
         'facts in its eval set, and every rule in the plugin traces back to a failure an eval caught.',
       tags: ['Claude plugin', 'Claude Code skills', 'LLM-judge evals', 'Vision', 'MCP', 'CI'],
+      links: [{ label: 'Source on GitHub', href: 'https://github.com/plamen911/fire-service-skills' }],
       tense: 'present',
     },
     {

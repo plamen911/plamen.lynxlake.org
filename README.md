@@ -117,6 +117,9 @@ Hits from it are then printed redacted, because Actions logs of a public repo ar
 Chat eval cases about private topics go in the gitignored `scripts/eval-cases.local.json` (format:
 `scripts/eval-cases.local.example.json`); `npm run evals` merges them in when the file exists.
 
+`PUBLISHED_URLS` in `scripts/forbidden.ts` lists public URLs that are exempt from the local list. Only the exact text is
+exempt: the same words anywhere else still fail.
+
 ## Chat API
 
 `POST /api/chat` (`functions/api/chat.ts`, logic in `src/chat/server/handler.ts`) answers questions about Plamen with

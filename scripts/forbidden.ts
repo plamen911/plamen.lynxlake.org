@@ -116,8 +116,12 @@ function matchAll(text: string, pattern: RegExp, why: string, local = false): Fo
 }
 
 /** Local (private) entries only: literals and patterns. */
+// Public URLs Plamen chose to publish. Only this exact text is exempt: the same words anywhere else still fail.
+export const PUBLISHED_URLS = ['github.com/plamen911/fire-service-skills'];
+
 export function findLiterals(text: string, local: LocalEntry[]): ForbiddenHit[] {
-  return local.flatMap((entry) => matchAll(text, entryRegExp(entry), entry.why, true));
+  const scanned = PUBLISHED_URLS.reduce((t, url) => t.replaceAll(url, ' '), text);
+  return local.flatMap((entry) => matchAll(scanned, entryRegExp(entry), entry.why, true));
 }
 
 /** Generic patterns plus any local entries. */
