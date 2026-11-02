@@ -27,6 +27,8 @@ export interface Env {
   DAILY_CAP_USD: string;
   MONTHLY_CAP_USD: string;
   RATE_LIMIT_PER_HOUR: string;
+  /** Optional: job-fit checks per visitor per hour, raised for the eval run; the default is FIT_LIMIT. */
+  FIT_LIMIT_PER_HOUR?: string;
   PRICE_INPUT_PER_MTOK: string;
   PRICE_OUTPUT_PER_MTOK: string;
   PRICE_CACHE_READ_PER_MTOK: string;

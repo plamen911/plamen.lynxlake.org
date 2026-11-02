@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CHAT_TITLE, fallbackLine, mountChat, NOTICE_LINE } from '../src/chat/client/chat';
+import { CHAT_TITLE, fallbackLine, FIT_TOGGLE, mountChat, NOTICE_LINE } from '../src/chat/client/chat';
 
 const STARTERS = ['What AI work has he shipped?', 'Is he available?', "What's his stack?"];
 const EMAIL = 'someone@example.com';
@@ -8,7 +8,7 @@ const FALLBACK = `The assistant is unavailable right now — email me at ${EMAIL
 const TITLE = "Ask an AI assistant about Plamen's work";
 const NOTICE =
   'Answers are AI-generated from this page and may be wrong — for anything important, email me. ' +
-  'Questions are stored for 30 days, without IP addresses, so I can see what people ask. ' +
+  'Questions and job descriptions are stored for 30 days, without IP addresses, so I can see what people ask. ' +
   "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
 
 type FetchArgs = [input: RequestInfo | URL, init?: RequestInit];
@@ -661,5 +661,66 @@ describe('contact dialog', () => {
     await submitContact('jane@example.com');
     expect(note().textContent).toBe("Couldn't send right now — please use the contact details below.");
     expect(note().querySelector('a')?.getAttribute('href')).toBe('#contact');
+  });
+});
+
+describe('job-fit check', () => {
+  const JOB = 'Senior backend engineer. Must have: PHP, Laravel and LLM integration. Remote, B2B contract in Europe.';
+  const toggle = () => [...root.querySelectorAll<HTMLButtonElement>('.chat-contact-toggle')].find((b) => b.textContent === FIT_TOGGLE)!;
+  const dialog = () => root.querySelector<HTMLDialogElement>('#chat-fit-dialog')!;
+  const text = () => dialog().querySelector<HTMLTextAreaElement>('textarea')!;
+
+  async function submit(value: string): Promise<void> {
+    toggle().click();
+    text().value = value;
+    dialog().querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    await settle();
+  }
+
+  it('sends the job description alone, in job-fit mode, and shows the answer in the chat', async () => {
+    const fetchFn = vi.fn(async () => answer('Fit: strong.'));
+    mount(fetchFn);
+    await submit(JOB);
+    const body = JSON.parse(String((fetchFn.mock.calls[0] as unknown as FetchArgs)[1]?.body));
+    expect(body.mode).toBe('job_fit');
+    expect(body.messages).toEqual([{ role: 'user', content: JOB }]);
+    expect(dialog().hasAttribute('open')).toBe(false);
+    expect(lastAnswer().textContent).toBe('Fit: strong.');
+    expect(text().value).toBe('');
+  });
+
+  it('shortens the job description in the chat log', async () => {
+    mount(vi.fn(async () => answer('Fit: strong.')));
+    await submit('x'.repeat(500));
+    const shown = root.querySelector('.chat-msg.user')!.textContent!;
+    expect(shown.startsWith('Job description: x')).toBe(true);
+    expect(shown.length).toBeLessThan(170);
+  });
+
+  it('refuses a too-short text without calling the API, and keeps the dialog open', async () => {
+    const fetchFn = vi.fn();
+    mount(fetchFn);
+    await submit('Laravel dev');
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(dialog().hasAttribute('open')).toBe(true);
+    expect(dialog().querySelector('.chat-contact-note')!.textContent).toMatch(/too short/);
+  });
+
+  it('keeps the text and shows the fallback when the check fails', async () => {
+    mount(vi.fn(async () => jsonResponse(503, 'unavailable')));
+    await submit(JOB);
+    expect(lastAnswer().textContent).toBe(FALLBACK);
+    expect(text().value).toBe(JOB);
+  });
+
+  it('lets a follow-up question use the answer, without resending the job description', async () => {
+    const fetchFn = vi.fn(async () => answer('Fit: strong.'));
+    mount(fetchFn);
+    await submit(JOB);
+    await ask('Why strong?');
+    const body = JSON.parse(String((fetchFn.mock.calls[1] as unknown as FetchArgs)[1]?.body));
+    expect(body.mode).toBeUndefined();
+    expect(body.messages.map((m: { role: string }) => m.role)).toEqual(['user', 'assistant', 'user']);
+    expect(JSON.stringify(body.messages)).not.toContain('Must have');
   });
 });

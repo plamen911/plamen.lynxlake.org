@@ -106,3 +106,27 @@ describe('costMicros', () => {
     expect(costMicros({ input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 1000 }, prices)).toBe(1250);
   });
 });
+
+describe('parseChatRequest, job-fit mode', () => {
+  const job = (content: string) => ({ messages: [{ role: 'user', content }], mode: 'job_fit' });
+
+  it('accepts one job description of 40-6000 chars, and keeps the mode', () => {
+    expect(parseChatRequest(job('x'.repeat(40)))).toMatchObject({ mode: 'job_fit' });
+    expect(parseChatRequest(job('x'.repeat(6000)))).toMatchObject({ mode: 'job_fit' });
+  });
+
+  it('refuses one that is too short or too long, or that comes with other messages', () => {
+    expect(parseChatRequest(job('x'.repeat(39)))).toHaveProperty('error');
+    expect(parseChatRequest(job(' '.repeat(50) + 'x'))).toHaveProperty('error');
+    expect(parseChatRequest(job('x'.repeat(6001)))).toHaveProperty('error');
+    const content = 'x'.repeat(50);
+    const three = [{ role: 'user', content }, { role: 'assistant', content }, { role: 'user', content }];
+    expect(parseChatRequest({ messages: three, mode: 'job_fit' })).toHaveProperty('error');
+  });
+
+  it('keeps the 600-char limit without the mode, and refuses an unknown mode', () => {
+    expect(parseChatRequest({ messages: [{ role: 'user', content: 'x'.repeat(601) }] })).toHaveProperty('error');
+    expect(parseChatRequest({ messages: [{ role: 'user', content: 'Hi' }], mode: 'other' })).toHaveProperty('error');
+    expect(parseChatRequest({ messages: [{ role: 'user', content: 'Hi' }] })).not.toHaveProperty('mode');
+  });
+});

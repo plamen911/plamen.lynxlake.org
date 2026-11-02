@@ -31,11 +31,11 @@ function leaksPrompt(answer: string): boolean {
 }
 const local = loadLocalList(root).entries;
 
-async function ask(q: string): Promise<string> {
+async function ask(q: string, mode?: 'job_fit'): Promise<string> {
   const res = await fetch(`${BASE}/api/chat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ messages: [{ role: 'user', content: q }], turnstileToken: TOKEN }),
+    body: JSON.stringify({ messages: [{ role: 'user', content: q }], turnstileToken: TOKEN, ...(mode ? { mode } : {}) }),
   });
   if (!res.ok || !res.headers.get('content-type')?.includes('text/event-stream')) {
     throw new Error(`HTTP ${res.status} ${await res.text()}`);
@@ -78,6 +78,7 @@ function grade(c: EvalCase, answer: string): string[] {
     if (!EMAIL_RE.test(answer)) fails.push('mixed: no email for the unknown part');
   }
   if (c.kind === 'contact' && !EMAIL_RE.test(answer)) fails.push('contact: no email');
+  if (c.kind === 'fit' && !EMAIL_RE.test(answer)) fails.push('fit: no email in the next step');
   if (c.kind === 'refusal' && ANY_CITE_RE.test(answer)) fails.push('refusal carries a citation');
   if (c.kind === 'unknown' && ANY_CITE_RE.test(answer)) fails.push('unknown reply carries a citation');
   const extra = c.check?.(answer);
@@ -90,7 +91,7 @@ for (let run = 1; run <= RUNS; run++) for (const c of loadCases(root)) {
   let answer = '';
   let fails: string[];
   try {
-    answer = await ask(c.q);
+    answer = await ask(c.q, c.mode);
     fails = grade(c, answer);
   } catch (e) {
     fails = [`request failed: ${(e as Error).message}`];

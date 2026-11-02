@@ -4,7 +4,7 @@ import { createTurnstile } from './turnstile';
 export const CHAT_TITLE = "Ask an AI assistant about Plamen's work";
 const NOTICE_AI = 'Answers are AI-generated from this page and may be wrong — for anything important, ';
 const NOTICE_EMAIL = 'email me';
-const NOTICE_STORAGE = 'Questions are stored for 30 days, without IP addresses, so I can see what people ask.';
+const NOTICE_STORAGE = 'Questions and job descriptions are stored for 30 days, without IP addresses, so I can see what people ask.';
 const NOTICE_CONTACT = "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
 export const NOTICE_LINE = `${NOTICE_AI}${NOTICE_EMAIL}. ${NOTICE_STORAGE} ${NOTICE_CONTACT}`;
 
@@ -29,6 +29,16 @@ export const cleanMessage = (text: string): string =>
   text.replace(/\r\n?/g, '\n').replace(/\t/g, ' ').replace(MESSAGE_CONTROL, '').trim();
 /** The name as the server accepts it: one line, no control, bidi or separator characters. */
 export const cleanName = (text: string): string => text.replace(/[\t\r\n]+/g, ' ').replace(NAME_CONTROL, '').trim();
+
+export const FIT_TOGGLE = 'Hiring? Paste a job description to check the fit';
+const FIT_TITLE = 'Check a role against his profile';
+const FIT_INTRO =
+  'The assistant compares the role with his public profile and lists what matches and what isn\'t shown. The text goes to Plamen and is stored for 30 days, so leave out anything confidential.';
+const FIT_TOO_SHORT = 'Please paste the job description: a sentence or two is too short to compare.';
+const FIT_MIN_CHARS = 40;
+const FIT_MAX_CHARS = 6000;
+const FIT_HISTORY_LINE = 'Check this job description against his profile.';
+const FIT_SHOWN_CHARS = 140;
 
 const FALLBACK_START = 'The assistant is unavailable right now — ';
 const FALLBACK_NO_EMAIL = 'please use the contact details below.';
@@ -292,7 +302,44 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   const turnstileBox = el('div', 'chat-turnstile');
   const notice = el('p', 'chat-notice');
   renderNotice(notice, email);
-  wrapper.append(title, log, starterList, form, contactToggle, contactDialog, contactStatus, turnstileBox, notice);
+
+  // "Check the fit": a job description in its own dialog; the answer streams into the chat.
+  const fitToggle = el('button', 'chat-contact-toggle', FIT_TOGGLE);
+  fitToggle.type = 'button';
+  fitToggle.setAttribute('aria-haspopup', 'dialog');
+  const fitDialog = el('dialog', 'chat-contact-dialog');
+  fitDialog.id = 'chat-fit-dialog';
+  fitToggle.setAttribute('aria-controls', fitDialog.id);
+  const fitBox = el('div', 'chat-contact-box');
+  const fitClose = el('button', 'chat-contact-x', '×');
+  fitClose.type = 'button';
+  fitClose.setAttribute('aria-label', 'Close');
+  const fitTitle = el('h2', 'chat-contact-title', FIT_TITLE);
+  fitTitle.id = 'chat-fit-title';
+  fitDialog.setAttribute('aria-labelledby', fitTitle.id);
+  const fitIntro = el('p', 'chat-contact-intro', FIT_INTRO);
+  fitIntro.id = 'chat-fit-intro';
+  fitDialog.setAttribute('aria-describedby', fitIntro.id);
+  const fitForm = el('form', 'chat-contact');
+  const fitText = contactField('textarea', 'job', 'Job description');
+  fitText.control.required = true;
+  fitText.control.maxLength = FIT_MAX_CHARS;
+  fitText.control.rows = 8;
+  const fitNote = el('p', 'chat-contact-note');
+  fitNote.id = 'chat-fit-note';
+  fitNote.setAttribute('role', 'status');
+  fitNote.setAttribute('aria-live', 'polite');
+  const fitActions = el('div', 'chat-contact-actions');
+  const fitSend = el('button', 'chat-send', 'Check the fit');
+  fitSend.type = 'submit';
+  const fitCancel = el('button', 'chat-contact-cancel', 'Cancel');
+  fitCancel.type = 'button';
+  fitActions.append(fitSend, fitCancel);
+  fitForm.append(fitText.row, fitNote, fitActions);
+  fitBox.append(fitClose, fitTitle, fitIntro, fitForm);
+  fitDialog.append(fitBox);
+
+  wrapper.append(title, log, starterList, form, contactToggle, contactDialog, contactStatus, fitToggle, fitDialog, turnstileBox, notice);
 
   const turnstile = opts.getTurnstileToken ? null : createTurnstile(opts.siteKey, turnstileBox);
   const getToken = opts.getTurnstileToken ?? (() => turnstile!.getToken());
@@ -316,6 +363,7 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   function setBusy(value: boolean): void {
     busy = value;
     sendButton.disabled = value;
+    fitSend.disabled = value;
     for (const button of starterButtons) button.disabled = value;
     log.setAttribute('aria-busy', String(value));
     wrapper.classList.toggle('is-busy', value);
@@ -328,22 +376,22 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     return message;
   }
 
-  async function post(messages: ChatMessage[], turnstileToken: string | undefined, signal: AbortSignal): Promise<Response> {
+  async function post(messages: ChatMessage[], fit: boolean, turnstileToken: string | undefined, signal: AbortSignal): Promise<Response> {
     return fetchFn(opts.endpoint, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(turnstileToken ? { messages, turnstileToken } : { messages }),
+      body: JSON.stringify({ messages, ...(fit ? { mode: 'job_fit' } : {}), ...(turnstileToken ? { turnstileToken } : {}) }),
       signal,
     });
   }
 
   /** Streams the answer into `bubble`; resolves with the full text only after `done`. */
-  async function request(messages: ChatMessage[], bubble: HTMLElement, signal: AbortSignal): Promise<string> {
-    let response = await post(messages, undefined, signal);
+  async function request(messages: ChatMessage[], fit: boolean, bubble: HTMLElement, signal: AbortSignal): Promise<string> {
+    let response = await post(messages, fit, undefined, signal);
     if (response.status === 401) {
       const token = await getToken();
-      response = await post(messages, token, signal);
+      response = await post(messages, fit, token, signal);
     }
     if (response.status !== 200 || !response.body) throw new ChatFailure(`status ${response.status}`);
 
@@ -372,13 +420,13 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     }
   }
 
-  /** `fromStarter`: the starter button is disabled while busy, so focus moves to the input afterwards. */
-  async function send(raw: string, fromStarter = false): Promise<void> {
-    const question = raw.trim().slice(0, MAX_USER_CHARS);
-    if (busy || question === '') return;
+  /**
+   * Shows `shown`, adds `question` to the history and streams the answer. `job` is a job
+   * description, sent alone in place of the history. True if an answer arrived.
+   */
+  async function exchange(shown: string, question: string, job?: string): Promise<boolean> {
     setBusy(true);
-    input.value = '';
-    addMessage('user', question);
+    addMessage('user', shown);
     history.push({ role: 'user', content: question });
     const bubble = addMessage('assistant', '');
     bubble.classList.add('is-pending');
@@ -386,20 +434,80 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const answer = await request(trimHistory(history), bubble, controller.signal);
+      const messages = job === undefined ? trimHistory(history) : [{ role: 'user' as const, content: job }];
+      const answer = await request(messages, job !== undefined, bubble, controller.signal);
       history.push({ role: 'assistant', content: answer });
+      return true;
     } catch {
       // Keep the history alternating: the failed question is not resent.
       history.pop();
       bubble.classList.remove('is-pending');
       bubble.classList.add('is-error');
       renderFallback(bubble, email);
+      return false;
     } finally {
       clearTimeout(timer);
       setBusy(false);
-      if (fromStarter) input.focus();
     }
   }
+
+  /** `fromStarter`: the starter button is disabled while busy, so focus moves to the input afterwards. */
+  async function send(raw: string, fromStarter = false): Promise<void> {
+    const question = raw.trim().slice(0, MAX_USER_CHARS);
+    if (busy || question === '') return;
+    input.value = '';
+    await exchange(question, question);
+    if (fromStarter) input.focus();
+  }
+
+  function isFitOpen(): boolean {
+    return fitDialog.hasAttribute('open');
+  }
+
+  function openFit(): void {
+    if (isFitOpen()) return;
+    fitNote.replaceChildren();
+    if (typeof fitDialog.showModal === 'function') fitDialog.showModal();
+    else fitDialog.setAttribute('open', '');
+    fitText.control.focus();
+  }
+
+  function closeFit(): void {
+    if (!isFitOpen()) return;
+    if (typeof fitDialog.close === 'function') fitDialog.close();
+    else fitDialog.removeAttribute('open');
+    fitToggle.focus();
+  }
+
+  /** The answer streams into the chat, so the dialog closes first; the text is kept until an answer arrives. */
+  async function checkFit(): Promise<void> {
+    if (busy) return;
+    const job = cleanMessage(fitText.control.value).slice(0, FIT_MAX_CHARS);
+    if (job.length < FIT_MIN_CHARS) {
+      fitNote.textContent = FIT_TOO_SHORT;
+      fitText.control.focus();
+      return;
+    }
+    closeFit();
+    const shortened = job.length > FIT_SHOWN_CHARS ? `${job.slice(0, FIT_SHOWN_CHARS).trimEnd()}…` : job;
+    if (await exchange(`Job description: ${shortened}`, FIT_HISTORY_LINE, job)) fitForm.reset();
+    input.focus();
+  }
+
+  fitToggle.addEventListener('click', openFit);
+  fitClose.addEventListener('click', closeFit);
+  fitCancel.addEventListener('click', closeFit);
+  fitDialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeFit();
+  });
+  fitDialog.addEventListener('click', (event) => {
+    if (event.target === fitDialog) closeFit();
+  });
+  fitForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void checkFit();
+  });
 
   let contactBusy = false;
   /** Text for the live region under the chat, written when the dialog closes. */

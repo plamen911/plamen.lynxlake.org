@@ -111,6 +111,24 @@ export const profile: Profile = {
       tags: ['GPT-4o vision', 'RAG', 'PostgreSQL', 'pgvector', 'Hybrid search', 'Cohere rerank', 'Laravel'],
       tense: 'present',
     },
+    {
+      id: 'site-assistant',
+      title: 'The AI assistant on this page',
+      problem:
+        'A recruiter with a specific question should not have to read a whole page, or guess whether a role fits. But a public ' +
+        'chatbot on a personal site can invent experience, leak private details or run up a bill.',
+      approach:
+        'Claude on a Cloudflare Pages Function, streamed to the page. Answers come only from the same data that renders this page, ' +
+        'and cite the section they came from. The worst-case cost of each request is reserved atomically in D1 before the model ' +
+        'is called and settled against real usage, within daily and monthly caps. Turnstile and hourly limits keep bots out, and ' +
+        'a check in CI scans the public source and CV for private facts.',
+      result:
+        'Live on this page: ask it something, or paste a job description to see what matches and what is not shown. Evals against ' +
+        'the real model test invented experience, private details, prompt injection and Bulgarian answers. The source is public.',
+      tags: ['Claude API', 'Evals', 'Prompt injection defence', 'Cloudflare Pages', 'D1', 'TypeScript'],
+      links: [{ label: 'Source on GitHub', href: 'https://github.com/plamen911/plamen.lynxlake.org' }],
+      tense: 'present',
+    },
   ],
 
   experience: [

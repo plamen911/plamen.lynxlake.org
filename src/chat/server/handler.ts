@@ -1,10 +1,10 @@
 import { profile } from '../../data/profile';
-import { buildSystemPrompt } from '../systemPrompt';
+import { buildFitPrompt, buildSystemPrompt, wrapJobDescription } from '../systemPrompt';
 import { costMicros, type Prices, type Usage } from './cost';
 import { dayKey, type Env } from './env';
 import { adjustSpend, checkAndCountRate, pruneRate, rateBucket, reserveSpend, sessionHash, visitorHash } from './limits';
 import { logQuestion, purgeQuestions } from './log';
-import { MAX_TOKENS, type ModelClient } from './model';
+import { FIT_MAX_TOKENS, MAX_TOKENS, type ModelClient } from './model';
 import { notifyQuestion } from './notify';
 import { issueSession, readSessionCookie, sessionCookie, verifySession } from './session';
 import { parseHostnames, verifyTurnstile } from './turnstile';
@@ -12,6 +12,10 @@ import { parseChatRequest, type ChatMessage } from './validate';
 
 // Deterministic, so it is built once per isolate.
 const SYSTEM_PROMPT = buildSystemPrompt(profile);
+const FIT_SYSTEM_PROMPT = buildFitPrompt(profile);
+
+/** Job-fit checks allowed per visitor per hour; they also count towards the chat's limits. */
+export const FIT_LIMIT = 5;
 
 // Generous upper bound for a valid body (12000 chars of content, JSON-escaped, plus a token).
 const MAX_BODY_BYTES = 64 * 1024;
@@ -68,17 +72,21 @@ const utf8Bytes = (s: string): number => new TextEncoder().encode(s).length;
  * input tokens; every input token is priced at the dearest input rate (a
  * cache write may cost more than plain input); output is the full budget.
  */
-export function worstCaseMicros(messages: ChatMessage[], prices: Prices): number {
-  const inputTokens = utf8Bytes(SYSTEM_PROMPT) + messages.reduce((n, m) => n + utf8Bytes(m.content) + 10, 0) + 50;
+export function worstCaseMicros(messages: ChatMessage[], prices: Prices, system = SYSTEM_PROMPT, maxTokens = MAX_TOKENS): number {
+  const inputTokens = utf8Bytes(system) + messages.reduce((n, m) => n + utf8Bytes(m.content) + 10, 0) + 50;
   const dearest = Math.max(prices.input, prices.cacheWrite, prices.cacheRead);
-  return costMicros({ input_tokens: inputTokens, output_tokens: MAX_TOKENS }, { ...prices, input: dearest });
+  return costMicros({ input_tokens: inputTokens, output_tokens: maxTokens }, { ...prices, input: dearest });
 }
 
 const sse = (data: object): string => `data: ${JSON.stringify(data)}\n\n`;
 const errText = (err: unknown): string => (err instanceof Error ? err.message : 'unknown');
 
 /**
- * POST /api/chat. Order: config → validate → session or Turnstile → rate
+ * POST /api/chat. With `mode: 'job_fit'` the single message is a job description
+ * to compare with the profile: the same path, with its own prompt, a larger
+ * answer budget and one more rate limit.
+ *
+ * Order: config → validate → session or Turnstile → rate
  * (per visitor and per session) → reserve worst-case spend within the caps →
  * log question → stream → settle the reservation after the stream ends, then
  * prune old rate buckets and purge questions older than 30 days.
@@ -116,7 +124,13 @@ export async function handleChat(
   }
   const parsed = parseChatRequest(body);
   if ('error' in parsed) return errorResponse('invalid');
-  const { messages, turnstileToken } = parsed;
+  const { turnstileToken } = parsed;
+  const fit = parsed.mode === 'job_fit';
+  const question = parsed.messages[parsed.messages.length - 1]!.content;
+  const messages: ChatMessage[] = fit ? [{ role: 'user', content: wrapJobDescription(question) }] : parsed.messages;
+  const system = fit ? FIT_SYSTEM_PROMPT : SYSTEM_PROMPT;
+  const maxTokens = fit ? FIT_MAX_TOKENS : MAX_TOKENS;
+  const logged = fit ? `[job-fit check]\n${question}` : question;
 
   // 2. Session, or Turnstile (which issues a new session).
   const ip = request.headers.get('CF-Connecting-IP') ?? '0.0.0.0';
@@ -129,20 +143,18 @@ export async function handleChat(
     newSession = true;
   }
 
-  const reserved = worstCaseMicros(messages, config.prices);
+  const reserved = worstCaseMicros(messages, config.prices, system, maxTokens);
   try {
     // 3. Rate limit per hour: per visitor (IPv6 by /64) and per session; both are counted.
-    const visitorOk = await checkAndCountRate(
-      env.DB,
-      rateBucket(await visitorHash(ip, env.SESSION_SECRET, dayKey(now)), now),
-      config.ratePerHour,
-    );
+    const visitor = await visitorHash(ip, env.SESSION_SECRET, dayKey(now));
+    const visitorOk = await checkAndCountRate(env.DB, rateBucket(visitor, now), config.ratePerHour);
     const sessionOk = await checkAndCountRate(
       env.DB,
       rateBucket(await sessionHash(session!, env.SESSION_SECRET), now),
       config.ratePerHour,
     );
     if (!visitorOk || !sessionOk) return errorResponse('rate_limited');
+    if (fit && !(await checkAndCountRate(env.DB, `fit:${rateBucket(visitor, now)}`, Number(env.FIT_LIMIT_PER_HOUR) || FIT_LIMIT))) return errorResponse('rate_limited');
 
     // 4. Reserve the worst case within the caps.
     if (!(await reserveSpend(env.DB, now, reserved, config.dailyCapUsd, config.monthlyCapUsd))) {
@@ -155,14 +167,14 @@ export async function handleChat(
 
   // 5. Log the question. On failure, release the reservation.
   try {
-    await logQuestion(env.DB, now, messages[messages.length - 1]!.content);
+    await logQuestion(env.DB, now, logged);
   } catch (err) {
     console.error('chat: D1 error', errText(err));
     await adjustSpend(env.DB, now, -reserved).catch(() => {});
     return errorResponse('unavailable');
   }
   const notified = notifyQuestion(env, {
-    question: messages[messages.length - 1]!.content,
+    question: logged,
     host: new URL(request.url).host,
     newVisitor: newSession,
     now,
@@ -195,7 +207,7 @@ export async function handleChat(
   let iterator: AsyncIterator<string>;
   let first: IteratorResult<string>;
   try {
-    const result = model.stream(SYSTEM_PROMPT, messages);
+    const result = model.stream(system, messages, maxTokens);
     usage = result.usage;
     usage.catch(() => {});
     iterator = result.text[Symbol.asyncIterator]();

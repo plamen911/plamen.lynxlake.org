@@ -89,8 +89,8 @@ describe('one-page site', () => {
     }
   });
 
-  it('renders four project articles, the fire-report one without any link', () => {
-    expect(querySelectorAll(doc, 'article.project').length).toBe(4);
+  it('renders five project articles, the fire-report one without any link', () => {
+    expect(querySelectorAll(doc, 'article.project').length).toBe(5);
     const card = querySelector(doc, 'article.project#project-fire-report-plugin');
     expect(card).toBeTruthy();
     expect(querySelector(card, 'a')).toBeFalsy();

@@ -15,13 +15,14 @@ describe('public profile', () => {
     expect(profile.links.cv.href).toBe('/cv/Plamen_Markov_CV.pdf');
   });
 
-  it('has exactly four projects in the spec order', () => {
-    expect(profile.projects.length).toBe(4);
+  it('has exactly five projects in the spec order', () => {
+    expect(profile.projects.length).toBe(5);
     expect(profile.projects.map((p) => p.id)).toEqual([
       'reporting-agent',
       'fire-report-plugin',
       'mcp-go-checker',
       'ocr-and-rag',
+      'site-assistant',
     ]);
   });
 

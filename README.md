@@ -140,7 +140,18 @@ State lives in D1 (`migrations/`): spend per day and month, rate buckets keyed b
 session (the IP is never stored), and the questions asked, kept for 30 days (older ones are purged when a question
 arrives and again when a request's spend settles). `npm run questions` lists recent ones.
 
-### Telegram notifications
+#### Job-fit check
+
+With `mode: "job_fit"`, the single user message is a job description of 40-6000 chars, and the assistant lists what
+matches his profile and what isn't shown. It goes through the same guards as a question, with three differences: the
+system prompt adds a job-fit section (`buildFitPrompt` in `src/chat/systemPrompt.ts`), the answer budget is 900 tokens,
+and there's one more limit of 5 checks per visitor per hour. The text is wrapped in `<job_description>` with any such
+tag inside it removed, and the prompt treats it as data. The prompt also forbids inferring a skill from a similar
+technology and commenting on pay, and it reports conflicts with his terms. The job description is logged as
+`[job-fit check]` and sent to Telegram like a question, cut to 1000 chars there. Evals cover a good fit, a poor fit,
+injection, a stated budget, a Bulgarian role and text that isn't a job description.
+
+## Telegram notifications
 
 When `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set, every chat question is also sent to that Telegram chat
 (`src/chat/server/notify.ts`): the host, "new visitor" or "follow-up", the UTC time and the question text - never the
@@ -178,7 +189,7 @@ can't pass one, so treat the totals as a guide. `npm run clicks` prints them (ne
 
 `src/components/ChatWidget.astro` mounts the client (`src/chat/client/chat.ts`) into `#chat-root` in the hero. Without
 JS the static starter links and the email stay. The widget is titled as an AI assistant; its notice says answers are
-AI-generated and may be wrong, that questions are kept for 30 days without IP addresses, and that an email left in the
+AI-generated and may be wrong, that questions and job descriptions are kept for 30 days without IP addresses, and that an email left in the
 form goes only to Plamen and isn't stored on the site. The email address comes from `profile.email` via `data-email`
 on `#chat-root`.
 
@@ -192,3 +203,6 @@ fallback shows.
 backdrop click, × and Cancel close it; focus returns to the link). The form checks the email shape and that the name
 and message are filled in, cleans control characters, reuses the chat's session and Turnstile, and shows "Thanks —
 Plamen will reply by email." or, on failure, keeps the form open and points to his email.
+
+"Hiring? Paste a job description to check the fit" opens a second dialog. The answer streams into the chat, the text
+stays in the form if the check fails, and follow-up questions see the answer but not the job description.
