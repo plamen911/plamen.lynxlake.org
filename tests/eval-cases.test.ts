@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CASES, loadCases, parseLocalCases } from '../scripts/eval-cases';
+import { CASES, fitSection, loadCases, parseLocalCases } from '../scripts/eval-cases';
 
 describe('eval cases', () => {
   it('parses local cases with regex sources', () => {
@@ -36,5 +36,17 @@ describe('eval cases', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('fitSection', () => {
+  const answer = 'Fit: partial. Reason.\nMatches:\n- PHP: yes. (see #stack)\nNot shown in the profile:\n- Rust.\nNext step: ask.';
+
+  it('returns only the lines under the label', () => {
+    expect(fitSection(answer, 'Matches:')).toContain('PHP');
+    expect(fitSection(answer, 'Matches:')).not.toContain('Rust');
+    expect(fitSection(answer, 'Not shown in the profile:')).toContain('Rust');
+    expect(fitSection(answer, 'Not shown in the profile:')).not.toContain('ask');
+    expect(fitSection('Fit: weak.', 'Matches:')).toBe('');
   });
 });

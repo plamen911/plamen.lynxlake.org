@@ -149,7 +149,7 @@ and there's one more limit of 5 checks per visitor per hour. The text is wrapped
 tag inside it removed, and the prompt treats it as data. The prompt also forbids inferring a skill from a similar
 technology and commenting on pay, and it reports conflicts with his terms. The job description is logged as
 `[job-fit check]` and sent to Telegram like a question, cut to 1000 chars there. Evals cover a good fit, a poor fit,
-injection, a stated budget, a Bulgarian role and text that isn't a job description.
+a role built around Claude Code skills, injection, a stated budget, a Bulgarian role and text that isn't a job description.
 
 ## Telegram notifications
 

@@ -59,14 +59,14 @@ export const profile: Profile = {
         'A court-format forensic fire-investigation report took an expert 5–6 hours at a desktop, working through a case file ' +
         'of 15–20 documents.',
       approach:
-        'A Claude plugin, built with Claude Code. It reads phone photos of the case file and drafts the report on the required ' +
+        'A Claude plugin made of reusable Claude Code skills. It reads phone photos of the case file and drafts the report on the required ' +
         'template. A mechanical check and a separate AI reviewer examine every draft before the expert signs it. Regression evals ' +
         'with an LLM judge run in CI, including trap cases where the correct answer is "no data" rather than an invented one. ' +
         'Personal-data checks are enforced in code, not left to the prompt.',
       result:
         'About 10–15 minutes per report instead of 5–6 hours, from a phone. The LLM judge catches all six planted fabricated ' +
         'facts in its eval set, and every rule in the plugin traces back to a failure an eval caught.',
-      tags: ['Claude plugin', 'Claude Code', 'LLM-judge evals', 'Vision', 'MCP', 'CI'],
+      tags: ['Claude plugin', 'Claude Code skills', 'LLM-judge evals', 'Vision', 'MCP', 'CI'],
       tense: 'present',
     },
     {
