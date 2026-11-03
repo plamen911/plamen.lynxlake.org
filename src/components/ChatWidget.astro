@@ -190,6 +190,17 @@ const { starters, email } = Astro.props;
     cursor: pointer;
   }
 
+  /* Phones: the input takes the full panel width and Send sits below it. */
+  @media (max-width: 767px) {
+    #chat-root .chat-form {
+      flex-direction: column;
+    }
+
+    #chat-root .chat-form .chat-send {
+      align-self: stretch;
+    }
+  }
+
   #chat-root .chat-send:hover:not(:disabled) {
     background: #ffffff;
   }
