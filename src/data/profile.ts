@@ -56,10 +56,11 @@ export const profile: Profile = {
       id: 'fire-report-plugin',
       title: 'Claude plugin that drafts forensic fire-investigation reports',
       problem:
-        'A court-format forensic fire-investigation report took an expert 5–6 hours at a desktop, working through the whole ' +
-        'case file by hand.',
+        'A court-format forensic fire-investigation report took an expert 5–6 hours at a desktop, working by hand through a ' +
+        'case file of 45–70 pages: the appointment order, scene inspection report, photo album, witness statements and other ' +
+        'expert reports.',
       approach:
-        'A Claude plugin made of reusable Claude Code skills. It reads 15–20 phone photos of the case file and drafts the report on the required ' +
+        'A Claude plugin made of reusable Claude Code skills. The expert photographs the 15–20 key pages; the plugin reads them and drafts the report on the required ' +
         'template. A mechanical check and a separate AI reviewer examine every draft before the expert signs it. Regression evals ' +
         'with an LLM judge run in CI, including trap cases where the correct answer is "no data" rather than an invented one. ' +
         'Personal-data checks are enforced in code, not left to the prompt.',
