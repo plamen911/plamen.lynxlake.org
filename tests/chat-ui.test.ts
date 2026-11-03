@@ -4,11 +4,11 @@ import { CHAT_TITLE, fallbackLine, FIT_TOGGLE, mountChat, NOTICE_LINE } from '..
 
 const STARTERS = ['What AI work has he shipped?', 'Is he available?', "What's his stack?"];
 const EMAIL = 'someone@example.com';
-const FALLBACK = `The assistant is unavailable right now — email me at ${EMAIL}.`;
+const FALLBACK = `The assistant is unavailable right now – email Plamen at ${EMAIL}.`;
 const TITLE = "Ask an AI assistant about Plamen's work";
 const NOTICE =
-  'Answers are AI-generated from this page and may be wrong — for anything important, email me. ' +
-  'Questions, job descriptions and rated answers are stored for 30 days, without IP addresses, so I can see what people ask. ' +
+  'Answers are AI-generated from this page and may be wrong – for anything important, email Plamen. ' +
+  'Questions, job descriptions and rated answers are stored for 30 days, without IP addresses, so Plamen can see what people ask. ' +
   "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
 
 type FetchArgs = [input: RequestInfo | URL, init?: RequestInit];
@@ -56,8 +56,8 @@ function starterButtons(): HTMLButtonElement[] {
   return [...root.querySelectorAll<HTMLButtonElement>('button.chat-starter')];
 }
 
-function input(): HTMLInputElement {
-  return root.querySelector<HTMLInputElement>('input.chat-input')!;
+function input(): HTMLTextAreaElement {
+  return root.querySelector<HTMLTextAreaElement>('textarea.chat-input')!;
 }
 
 function sendButton(): HTMLButtonElement {
@@ -102,7 +102,7 @@ describe('mountChat', () => {
     const notice = root.querySelector('.chat-notice')!;
     expect(notice.textContent).toBe(NOTICE);
     expect(notice.querySelector('a')?.getAttribute('href')).toBe(`mailto:${EMAIL}`);
-    expect(notice.querySelector('a')?.textContent).toBe('email me');
+    expect(notice.querySelector('a')?.textContent).toBe('email Plamen');
   });
 
   it('shows a fallback without an address, pointing to the contact section, when data-email is missing', async () => {
@@ -111,7 +111,7 @@ describe('mountChat', () => {
     expect(root.querySelector('.chat-notice')?.textContent).toBe(NOTICE);
     expect(root.querySelector('.chat-notice a')).toBeNull();
     await ask('hello');
-    expect(lastAnswer().textContent).toBe('The assistant is unavailable right now — please use the contact details below.');
+    expect(lastAnswer().textContent).toBe('The assistant is unavailable right now – please use the contact details below.');
     expect(lastAnswer().querySelector('a')?.getAttribute('href')).toBe('#contact');
   });
 
@@ -142,6 +142,30 @@ describe('mountChat', () => {
     expect(root.querySelector(`label[for="${field.id}"]`)?.textContent?.trim()).toBeTruthy();
     expect(root.textContent).toContain(NOTICE);
     expect(root.querySelector('[aria-live="polite"]')).toBeTruthy();
+  });
+
+  it('sends the question on Enter and keeps Shift+Enter for a new line', async () => {
+    const fetchFn = vi.fn(async () => streamResponse(sse({ type: 'delta', text: 'Yes.' }, { type: 'done' })));
+    mount(fetchFn);
+    const field = input();
+    field.value = 'Is he available?';
+    const shift = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true });
+    field.dispatchEvent(shift);
+    await settle();
+    expect(shift.defaultPrevented).toBe(false);
+    expect(fetchFn).not.toHaveBeenCalled();
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    field.dispatchEvent(enter);
+    await settle();
+    expect(enter.defaultPrevented).toBe(true);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(field.value).toBe('');
+  });
+
+  it('gives the icon-only Send button an accessible name', () => {
+    mount(vi.fn());
+    expect(sendButton().getAttribute('aria-label')).toBe('Send');
+    expect(sendButton().querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('sends a starter question and renders the streamed answer', async () => {
@@ -318,8 +342,8 @@ describe('mountChat', () => {
 
 describe('contact dialog', () => {
   const TOGGLE = 'Want Plamen to get back to you? Leave your email';
-  const THANKS = 'Thanks — Plamen will reply by email.';
-  const SORRY = `Couldn't send right now — please email ${EMAIL}.`;
+  const THANKS = 'Thanks – Plamen will reply by email.';
+  const SORRY = `Couldn't send right now – please email ${EMAIL}.`;
 
   const toggle = () => root.querySelector<HTMLButtonElement>('button.chat-contact-toggle')!;
   const dialog = () => root.querySelector<HTMLDialogElement>('dialog.chat-contact-dialog')!;
@@ -659,7 +683,7 @@ describe('contact dialog', () => {
     mount(vi.fn(async () => jsonResponse(503, 'unavailable')));
     open();
     await submitContact('jane@example.com');
-    expect(note().textContent).toBe("Couldn't send right now — please use the contact details below.");
+    expect(note().textContent).toBe("Couldn't send right now – please use the contact details below.");
     expect(note().querySelector('a')?.getAttribute('href')).toBe('#contact');
   });
 });

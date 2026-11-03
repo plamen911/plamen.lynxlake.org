@@ -2,20 +2,20 @@ import { parseSse } from './sse';
 import { createTurnstile } from './turnstile';
 
 export const CHAT_TITLE = "Ask an AI assistant about Plamen's work";
-const NOTICE_AI = 'Answers are AI-generated from this page and may be wrong — for anything important, ';
-const NOTICE_EMAIL = 'email me';
-const NOTICE_STORAGE = 'Questions, job descriptions and rated answers are stored for 30 days, without IP addresses, so I can see what people ask.';
+const NOTICE_AI = 'Answers are AI-generated from this page and may be wrong – for anything important, ';
+const NOTICE_EMAIL = 'email Plamen';
+const NOTICE_STORAGE = 'Questions, job descriptions and rated answers are stored for 30 days, without IP addresses, so Plamen can see what people ask.';
 const NOTICE_CONTACT = "If you leave your email, it goes only to Plamen so he can reply; it isn't stored on this site.";
 export const NOTICE_LINE = `${NOTICE_AI}${NOTICE_EMAIL}. ${NOTICE_STORAGE} ${NOTICE_CONTACT}`;
 
 export const CONTACT_TOGGLE = 'Want Plamen to get back to you? Leave your email';
-export const CONTACT_THANKS = 'Thanks — Plamen will reply by email.';
+export const CONTACT_THANKS = 'Thanks – Plamen will reply by email.';
 const CONTACT_TITLE = 'Leave your email for Plamen';
 const CONTACT_INTRO = "He'll reply by email. Your email goes only to Plamen and isn't stored on this site.";
 const CONTACT_INVALID = 'Please enter a valid email address.';
 const CONTACT_NAME_REQUIRED = 'Please enter your name.';
 const CONTACT_MESSAGE_REQUIRED = 'Please write a short message.';
-const CONTACT_FAIL_START = "Couldn't send right now — ";
+const CONTACT_FAIL_START = "Couldn't send right now – ";
 const CONTACT_MAX_NAME = 100;
 const CONTACT_MAX_MESSAGE = 1000;
 const CONTACT_TIMEOUT_MS = 30_000;
@@ -46,11 +46,11 @@ const RATE_THANKS = 'Thanks for the feedback.';
 const RATE_MAX_QUESTION = 600;
 const RATE_MAX_ANSWER = 6000;
 
-const FALLBACK_START = 'The assistant is unavailable right now — ';
+const FALLBACK_START = 'The assistant is unavailable right now – ';
 const FALLBACK_NO_EMAIL = 'please use the contact details below.';
 
 /** The line shown in place of an answer on any failure. */
-export const fallbackLine = (email: string): string => `${FALLBACK_START}email me at ${email}.`;
+export const fallbackLine = (email: string): string => `${FALLBACK_START}email Plamen at ${email}.`;
 
 const MAX_MESSAGES = 12;
 const MAX_USER_CHARS = 600;
@@ -138,10 +138,10 @@ function renderFallback(target: HTMLElement, email: string): void {
   const link = el('a', undefined, email);
   link.href = `mailto:${email}`;
   link.dataset.click = 'email';
-  target.replaceChildren(document.createTextNode(`${FALLBACK_START}email me at `), link, document.createTextNode('.'));
+  target.replaceChildren(document.createTextNode(`${FALLBACK_START}email Plamen at `), link, document.createTextNode('.'));
 }
 
-/** NOTICE_LINE, with "email me" as a mailto link when the email is known. */
+/** NOTICE_LINE, with "email Plamen" as a mailto link when the email is known. */
 function renderNotice(target: HTMLElement, email: string): void {
   if (!email) {
     target.textContent = NOTICE_LINE;
@@ -153,7 +153,7 @@ function renderNotice(target: HTMLElement, email: string): void {
   target.replaceChildren(document.createTextNode(NOTICE_AI), link, document.createTextNode(`. ${NOTICE_STORAGE} ${NOTICE_CONTACT}`));
 }
 
-/** "Couldn't send right now — please email <email>." as a mailto link; without an email, a pointer to #contact. */
+/** "Couldn't send right now – please email <email>." as a mailto link; without an email, a pointer to #contact. */
 function renderContactFailure(target: HTMLElement, email: string): void {
   if (!email) {
     const link = el('a', undefined, FALLBACK_NO_EMAIL.slice(0, -1));
@@ -229,10 +229,12 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
 
   const form = el('form', 'chat-form');
   const label = el('label', 'visually-hidden', 'Your question');
-  const input = el('input', 'chat-input');
+  // A one-line textarea that grows with the question (up to the CSS max-height):
+  // Enter sends, Shift+Enter starts a new line.
+  const input = el('textarea', 'chat-input');
   input.id = 'chat-input';
   label.htmlFor = input.id;
-  input.type = 'text';
+  input.rows = 1;
   input.name = 'question';
   input.maxLength = MAX_USER_CHARS;
   input.autocomplete = 'off';
@@ -250,7 +252,7 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   sendIcon.setAttribute('aria-hidden', 'true');
   sendIcon.setAttribute('focusable', 'false');
   const sendPath = document.createElementNS(svgNs, 'path');
-  sendPath.setAttribute('d', 'M12 19V5M5 12l7-7 7 7');
+  sendPath.setAttribute('d', 'M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5 21 3Z');
   sendIcon.append(sendPath);
   sendButton.append(sendIcon);
   form.append(label, input, sendButton);
@@ -379,6 +381,18 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     void send(input.value);
+  });
+
+  // Height follows the content; the CSS max-height caps it and scrolls beyond.
+  const fitInputHeight = () => {
+    input.style.height = 'auto';
+    input.style.height = `${input.scrollHeight + input.offsetHeight - input.clientHeight}px`;
+  };
+  input.addEventListener('input', fitInputHeight);
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+    event.preventDefault();
+    form.requestSubmit();
   });
 
   function setBusy(value: boolean): void {
@@ -522,6 +536,7 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
     const question = raw.trim().slice(0, MAX_USER_CHARS);
     if (busy || question === '') return;
     input.value = '';
+    input.style.height = '';
     await exchange(question, question);
     if (fromStarter) input.focus();
   }
