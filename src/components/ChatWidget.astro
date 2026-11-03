@@ -173,8 +173,13 @@ const { starters, email } = Astro.props;
   }
 
   /* The question box: one line high, grows to about four lines, then scrolls. */
+  /* 3rem tall on one line, exactly the Send button's size: 1.5em text
+     plus padding and border make 48px at a 16px font. */
   #chat-root .chat-form .chat-input {
     display: block;
+    box-sizing: border-box;
+    min-height: 3rem;
+    padding-block: calc((3rem - 1.5em - 2px) / 2);
     resize: none;
     line-height: 1.5;
     max-height: calc(6em + 1.2rem + 2px);
@@ -209,8 +214,9 @@ const { starters, email } = Astro.props;
   #chat-root .chat-send-icon {
     display: grid;
     place-items: center;
+    box-sizing: border-box;
     width: 3rem;
-    min-height: 3rem;
+    height: 3rem;
     padding: 0;
   }
 
