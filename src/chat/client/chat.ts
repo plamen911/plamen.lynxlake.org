@@ -238,8 +238,21 @@ export function mountChat(root: HTMLElement, opts: MountOptions): void {
   input.autocomplete = 'off';
   input.enterKeyHint = 'send';
   input.placeholder = 'Ask a question…';
-  const sendButton = el('button', 'chat-send', 'Send');
+  // Icon-only Send keeps the input wide on phones; aria-label gives it its name.
+  const sendButton = el('button', 'chat-send');
+  sendButton.classList.add('chat-send-icon');
   sendButton.type = 'submit';
+  sendButton.setAttribute('aria-label', 'Send');
+  sendButton.title = 'Send';
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const sendIcon = document.createElementNS(svgNs, 'svg');
+  sendIcon.setAttribute('viewBox', '0 0 24 24');
+  sendIcon.setAttribute('aria-hidden', 'true');
+  sendIcon.setAttribute('focusable', 'false');
+  const sendPath = document.createElementNS(svgNs, 'path');
+  sendPath.setAttribute('d', 'M12 19V5M5 12l7-7 7 7');
+  sendIcon.append(sendPath);
+  sendButton.append(sendIcon);
   form.append(label, input, sendButton);
 
   // "Leave your email": a button below the input row that opens a modal dialog.

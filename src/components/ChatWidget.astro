@@ -190,15 +190,24 @@ const { starters, email } = Astro.props;
     cursor: pointer;
   }
 
-  /* Phones: the input takes the full panel width and Send sits below it. */
-  @media (max-width: 767px) {
-    #chat-root .chat-form {
-      flex-direction: column;
-    }
+  /* The question form's Send is a square arrow button, so the input
+     keeps nearly the whole row at every width. */
+  #chat-root .chat-send-icon {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    min-height: 3rem;
+    padding: 0;
+  }
 
-    #chat-root .chat-form .chat-send {
-      align-self: stretch;
-    }
+  #chat-root .chat-send-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   #chat-root .chat-send:hover:not(:disabled) {
