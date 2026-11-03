@@ -69,7 +69,7 @@ describe('findForbidden: generic patterns', () => {
     'up to 20 messages per hour',
     'Shopify rate-limit handling with jittered retries',
     'Mia reviewed the pull request',
-    '20+ years of remote production work',
+    'two decades of remote backend work',
   ])('does not flag innocent text: %s', (text) => {
     expect(findForbidden(text)).toEqual([]);
   });

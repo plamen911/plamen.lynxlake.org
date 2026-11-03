@@ -19,11 +19,10 @@ export const profile: Profile = {
   },
 
   summary:
-    'Backend engineer with 20+ years of remote production work, most of it as the engineer who owned the whole system: ' +
-    'architecture, data model, rollout and years of maintenance after launch. ' +
-    'Builds LLM features into production software: a tool-calling agent that is never allowed to compute a figure itself, ' +
-    'a Claude plugin held to an LLM-judge eval suite, an MCP server published on npm and vision OCR. ' +
-    'Earlier, built and ran a retrieval-augmented generation (RAG) product solo. ' +
+    'Builds LLM features into production software and owns them after launch: a tool-calling agent that is never allowed ' +
+    'to compute a figure itself, a Claude plugin held to an LLM-judge eval suite, an MCP server published on npm, and ' +
+    'vision OCR. Before that, two decades of remote backend work, most of it as the engineer responsible for the whole ' +
+    'system – one platform for 13 years, from architecture and data model to rollout and maintenance. ' +
     'PHP and Laravel are the foundation; TypeScript and LLM integration are where the work is heading.',
 
   aiWorkflow: [
