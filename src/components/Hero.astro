@@ -13,6 +13,10 @@ const { links } = profile;
 type AnchorFor<T extends readonly string[]> = { [K in keyof T]: `#${string}` };
 const starterAnchors = ['#projects', '#contact', '#stack'] satisfies AnchorFor<Profile['starterQuestions']>;
 const starters = profile.starterQuestions.map((question, i) => ({ question, href: starterAnchors[i] }));
+// On phones the CV button reads just "CV" so all four links fit one row;
+// the full label stays the accessible name everywhere.
+const cvShort = 'CV';
+const cvLead = links.cv.label.endsWith(cvShort) ? links.cv.label.slice(0, -cvShort.length) : '';
 ---
 <header class="hero">
   <nav class="wrap topnav" aria-label="Sections">
@@ -32,7 +36,7 @@ const starters = profile.starterQuestions.map((question, i) => ({ question, href
       <p class="badge"><span class="dot" aria-hidden="true"></span>{profile.availability}</p>
       <p class="summary">{profile.summary}</p>
       <ul class="actions">
-        <li><a class="btn primary" data-click="cv" href={links.cv.href} target="_blank" rel="noopener">{links.cv.label}</a></li>
+        <li><a class="btn primary" data-click="cv" href={links.cv.href} target="_blank" rel="noopener" aria-label={links.cv.label}>{cvLead ? <><span class="cv-lead">{cvLead}</span>{cvShort}</> : links.cv.label}</a></li>
         <li><a class="btn" data-click="email" href={`mailto:${profile.email}`} target="_blank" rel="noopener">Email</a></li>
         <li><a class="btn" data-click="linkedin" href={links.linkedin.href} target="_blank" rel="noopener noreferrer">{links.linkedin.label}</a></li>
         <li><a class="btn" data-click="github" href={links.github.href} target="_blank" rel="noopener noreferrer">{links.github.label}</a></li>
@@ -107,8 +111,11 @@ const starters = profile.starterQuestions.map((question, i) => ({ question, href
     color: var(--hero-text);
   }
 
+  /* minmax(0, 1fr): without it the single phone column grows to its
+     widest content and pushes text past the right margin. */
   .hero-grid {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: clamp(2.5rem, 1.5rem + 3vw, 4.5rem);
     padding-top: clamp(2rem, 1rem + 5vw, 6rem);
   }
@@ -162,13 +169,55 @@ const starters = profile.starterQuestions.map((question, i) => ({ question, href
     max-width: 60ch;
   }
 
+  /* One row of buttons on phones: "Download CV" shortens to "CV" and the
+     buttons share the width. Keyed to the intro column's width, not the
+     screen, so the narrow tablet column gets the short label too. */
+  .intro {
+    container-type: inline-size;
+  }
+
   .actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
     list-style: none;
     margin: 2.25rem 0 0;
     padding: 0;
+  }
+
+  .actions li {
+    flex: 1 1 auto;
+  }
+
+  .actions .btn {
+    display: block;
+    padding-inline: 0.5rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .cv-lead {
+    display: none;
+  }
+
+  @container (min-width: 440px) {
+    .actions {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .actions li {
+      flex: none;
+    }
+
+    .actions .btn {
+      display: inline-block;
+      padding-inline: 1.15rem;
+    }
+
+    .cv-lead {
+      display: inline;
+    }
   }
 
   .btn {
