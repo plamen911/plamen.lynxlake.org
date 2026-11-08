@@ -100,8 +100,8 @@ describe('one-page site', () => {
     }
   });
 
-  it('renders five project articles, the fire-report one linking to its repo', () => {
-    expect(querySelectorAll(doc, 'article.project').length).toBe(5);
+  it('renders six project articles, the fire-report one linking to its repo', () => {
+    expect(querySelectorAll(doc, 'article.project').length).toBe(6);
     const card = querySelector(doc, 'article.project#project-fire-report-plugin');
     expect(card).toBeTruthy();
     expect(attr(querySelector(card, 'a'), 'href')).toBe('https://github.com/plamen911/fire-service-skills');

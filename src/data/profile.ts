@@ -29,7 +29,8 @@ export const profile: Profile = {
 
   summary:
     'Builds LLM features into production software and owns them after launch: a Claude plugin held to LLM-judge evals, a ' +
-    'reporting agent that takes every figure from a named tool call, an MCP server published on npm, and vision OCR. ' +
+    'reporting agent that takes every figure from a named tool call, a ChatGPT connector into a live back office, an MCP ' +
+    'server published on npm, and vision OCR. ' +
     'Before that, two decades of remote backend work, most of it as the engineer responsible for the whole system, ' +
     'from architecture and data model to rollout and maintenance. ' +
     'PHP and Laravel are the foundation; TypeScript and LLM integration are where the work is heading.',
@@ -58,6 +59,28 @@ export const profile: Profile = {
         'Shipped in a production insurance back office. Every figure in an answer traces back to a named tool call, and personal ' +
         'data cannot reach the public endpoint. Client code, so the architecture is described here and the code is not public.',
       tags: ['laravel/ai', 'Tool calling', 'Enum-constrained schemas', 'Laravel 13', 'PHP 8.4', 'Feature flags'],
+      tense: 'present',
+    },
+    {
+      id: 'chatgpt-connector',
+      title: 'ChatGPT connector into a live insurance back office',
+      problem:
+        "The brokerage chose ChatGPT as its everyday assistant, but ChatGPT knows nothing about the office's clients, policies " +
+        'or commissions, and pasting exports into it would leak personal data and be out of date by the afternoon.',
+      approach:
+        'A read-only MCP server on Laravel 13 with laravel/mcp and OAuth 2.1 through Laravel Passport. ChatGPT registers itself, ' +
+        'the employee signs in with their own account and approves on a consent page, and every call runs as that user, so a ' +
+        'clerk sees only their own clients. Connecting needs a feature flag and a per-person grant, and only allow-listed ' +
+        "redirect domains receive a code. Each tool is a thin wrapper over a service the web app already uses, and the office " +
+        "chat's own read-only tools are bridged unchanged, so ChatGPT and the app cannot disagree on a figure. Lists carry no " +
+        'personal ID numbers, and every call is logged and kept for a year.',
+      result:
+        'Live since November 2026, built in three phases. ChatGPT now answers portfolio questions in any mix (client type, age, ' +
+        'products held or missing, premium, revenue after agents, town, agent, period), looks up a single client with a next ' +
+        'best action, and checks the commercial register, while it does the writing and web research itself. Twenty tests ' +
+        'pin the access rules, including a refused foreign redirect and a clerk who sees only their own clients. Client code, ' +
+        'so the architecture is described here and the code is not public.',
+      tags: ['laravel/mcp', 'OAuth 2.1', 'Laravel Passport', 'ChatGPT', 'MCP', 'Laravel 13'],
       tense: 'present',
     },
     {
@@ -282,7 +305,8 @@ export const profile: Profile = {
     },
     {
       q: 'What AI work has he shipped to production?',
-      a: 'A tool-calling reporting agent on Laravel that never computes a figure itself; a Claude plugin that drafts forensic ' +
+      a: 'A tool-calling reporting agent on Laravel that never computes a figure itself; a read-only ChatGPT connector (MCP ' +
+        'with OAuth) that lets an insurance office ask ChatGPT about its own clients and commissions; a Claude plugin that drafts forensic ' +
         'fire-investigation reports in 10–15 minutes instead of 5–6 hours, checked by LLM-judge evals in CI; an MCP server ' +
         'for the Bulgarian motor-insurance register, published on npm; and GPT-4o vision OCR that pre-fills 17 fields from ' +
         'vehicle registration certificates.',

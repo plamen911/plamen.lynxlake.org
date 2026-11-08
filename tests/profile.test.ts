@@ -15,10 +15,11 @@ describe('public profile', () => {
     expect(profile.links.cv.href).toBe('/cv/Plamen_Markov_CV.pdf');
   });
 
-  it('has exactly five projects in the spec order', () => {
-    expect(profile.projects.length).toBe(5);
+  it('has exactly six projects in the spec order', () => {
+    expect(profile.projects.length).toBe(6);
     expect(profile.projects.map((p) => p.id)).toEqual([
       'reporting-agent',
+      'chatgpt-connector',
       'fire-report-plugin',
       'mcp-go-checker',
       'ocr-and-rag',
