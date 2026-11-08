@@ -18,9 +18,9 @@ describe('public profile', () => {
   it('has exactly six projects in the spec order', () => {
     expect(profile.projects.length).toBe(6);
     expect(profile.projects.map((p) => p.id)).toEqual([
+      'fire-report-plugin',
       'reporting-agent',
       'chatgpt-connector',
-      'fire-report-plugin',
       'mcp-go-checker',
       'ocr-and-rag',
       'site-assistant',

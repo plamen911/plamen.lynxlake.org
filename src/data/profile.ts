@@ -44,6 +44,27 @@ export const profile: Profile = {
 
   projects: [
     {
+      id: 'fire-report-plugin',
+      title: 'Claude plugin that drafts forensic fire-investigation reports',
+      problem:
+        'By the experts\' own estimate, a court-format forensic fire-investigation report takes 5–6 hours at a desktop on a simple ' +
+        'case and 7–8 on a complex one, working by hand through a case file that usually runs to 45–70 pages: the appointment order, scene inspection report, photo album, witness statements and other ' +
+        'expert reports.',
+      approach:
+        'A Claude plugin made of reusable Claude Code skills. The expert photographs the key pages, 10–15 on a simple case and 76 on a recent complex one; the plugin reads them and drafts the report on the required ' +
+        'template. A mechanical check and a separate AI reviewer examine every draft before the expert signs it. Regression evals ' +
+        'with an LLM judge run in CI, including trap cases where the correct answer is "no data" rather than an invented one. ' +
+        'Personal-data checks are enforced in code, not left to the prompt.',
+      result:
+        'A simple case takes about 10–15 minutes instead of 5–6 hours, from a phone. A recent non-standard case with 76 photos took ' +
+        '2–2.5 hours with reviews instead of 7–8; that included fine-tuning the skill, and the finished report was saved as a ' +
+        'template for future cases. The LLM judge catches all six planted fabricated ' +
+        'facts in its eval set, and every rule in the plugin traces back to a failure an eval caught.',
+      tags: ['Claude plugin', 'Claude Code skills', 'LLM-judge evals', 'Vision', 'MCP', 'CI'],
+      links: [{ label: 'Source on GitHub', href: 'https://github.com/plamen911/fire-service-skills' }],
+      tense: 'present',
+    },
+    {
       id: 'reporting-agent',
       title: 'Tool-calling reporting agent that never computes a number',
       problem:
@@ -81,27 +102,6 @@ export const profile: Profile = {
         'pin the access rules, including a refused foreign redirect and a clerk who sees only their own clients. Client code, ' +
         'so the architecture is described here and the code is not public.',
       tags: ['laravel/mcp', 'OAuth 2.1', 'Laravel Passport', 'ChatGPT', 'MCP', 'Laravel 13'],
-      tense: 'present',
-    },
-    {
-      id: 'fire-report-plugin',
-      title: 'Claude plugin that drafts forensic fire-investigation reports',
-      problem:
-        'By the experts\' own estimate, a court-format forensic fire-investigation report takes 5–6 hours at a desktop on a simple ' +
-        'case and 7–8 on a complex one, working by hand through a case file that usually runs to 45–70 pages: the appointment order, scene inspection report, photo album, witness statements and other ' +
-        'expert reports.',
-      approach:
-        'A Claude plugin made of reusable Claude Code skills. The expert photographs the key pages, 10–15 on a simple case and 76 on a recent complex one; the plugin reads them and drafts the report on the required ' +
-        'template. A mechanical check and a separate AI reviewer examine every draft before the expert signs it. Regression evals ' +
-        'with an LLM judge run in CI, including trap cases where the correct answer is "no data" rather than an invented one. ' +
-        'Personal-data checks are enforced in code, not left to the prompt.',
-      result:
-        'A simple case takes about 10–15 minutes instead of 5–6 hours, from a phone. A recent non-standard case with 76 photos took ' +
-        '2–2.5 hours with reviews instead of 7–8; that included fine-tuning the skill, and the finished report was saved as a ' +
-        'template for future cases. The LLM judge catches all six planted fabricated ' +
-        'facts in its eval set, and every rule in the plugin traces back to a failure an eval caught.',
-      tags: ['Claude plugin', 'Claude Code skills', 'LLM-judge evals', 'Vision', 'MCP', 'CI'],
-      links: [{ label: 'Source on GitHub', href: 'https://github.com/plamen911/fire-service-skills' }],
       tense: 'present',
     },
     {
@@ -305,11 +305,11 @@ export const profile: Profile = {
     },
     {
       q: 'What AI work has he shipped to production?',
-      a: 'A tool-calling reporting agent on Laravel that never computes a figure itself; a read-only ChatGPT connector (MCP ' +
-        'with OAuth) that lets an insurance office ask ChatGPT about its own clients and commissions; a Claude plugin that drafts forensic ' +
-        'fire-investigation reports in 10–15 minutes instead of 5–6 hours, checked by LLM-judge evals in CI; an MCP server ' +
-        'for the Bulgarian motor-insurance register, published on npm; and GPT-4o vision OCR that pre-fills 17 fields from ' +
-        'vehicle registration certificates.',
+      a: 'A Claude plugin that drafts forensic fire-investigation reports in 10–15 minutes instead of 5–6 hours, checked by ' +
+        'LLM-judge evals in CI; a tool-calling reporting agent on Laravel that never computes a figure itself; a read-only ' +
+        'ChatGPT connector (MCP with OAuth) that lets an insurance office ask ChatGPT about its own clients and commissions; ' +
+        'an MCP server for the Bulgarian motor-insurance register, published on npm; and GPT-4o vision OCR that pre-fills ' +
+        '17 fields from vehicle registration certificates.',
     },
     {
       q: 'Can he take over and modernise a legacy PHP codebase?',
