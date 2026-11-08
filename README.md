@@ -219,6 +219,18 @@ hashed for the hourly rate bucket. The request must come from the same origin; l
 hour and 2000 per UTC day in all. It answers 204, or 400/403/429/503 with no body. There is no Turnstile, as a beacon
 can't pass one, so treat the totals as a guide. `npm run clicks` prints them (needs `wrangler login`).
 
+## Visit and usage stats
+
+The page sends one beacon to `/api/click` with the name `view` when it loads (not on the 404 page, and not from an
+automated browser that sets `navigator.webdriver`), so page views are counted in the same `clicks` table, per UTC day,
+with no visitor id. CV downloads from a direct link to the PDF (from LinkedIn, say) never load the page, so they are
+not counted.
+
+`GET /api/stats` (`functions/api/stats.ts`, logic in `src/chat/server/stats.ts`) returns, for each of the last 30 UTC
+days, page views, clicks on the CV, email, LinkedIn, GitHub and project links, chat questions and rated answers, plus
+the totals. Counts only: no question text and nothing about a visitor. It is public on purpose and cached for 5
+minutes; `robots.txt` keeps crawlers off `/api/`. The AI-visibility dashboard reads it once a day.
+
 ## Chat widget
 
 `src/components/ChatWidget.astro` mounts the client (`src/chat/client/chat.ts`) into `#chat-root` in the hero. Without

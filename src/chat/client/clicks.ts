@@ -1,3 +1,5 @@
+import { VIEW_KEY } from '../../data/clicks';
+
 const beacon = (key: string): void => {
   try {
     navigator.sendBeacon?.('/api/click', JSON.stringify({ link: key }));
@@ -20,4 +22,18 @@ export function trackClicks(doc: Document, send: (key: string) => void = beacon)
   };
   doc.addEventListener('click', onClick);
   doc.addEventListener('auxclick', onClick);
+}
+
+/**
+ * Counts one view of the page. Skipped for automated browsers (`navigator.webdriver`),
+ * and for prerendering, where the view is sent once the page is shown.
+ */
+export function trackView(doc: Document, send: (key: string) => void = beacon): void {
+  if (doc.defaultView?.navigator?.webdriver) return;
+  const doc2 = doc as Document & { prerendering?: boolean };
+  if (doc2.prerendering) {
+    doc.addEventListener('prerenderingchange', () => send(VIEW_KEY), { once: true });
+    return;
+  }
+  send(VIEW_KEY);
 }

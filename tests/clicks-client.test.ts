@@ -41,3 +41,12 @@ describe('trackClicks', () => {
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+describe('trackView', () => {
+  it('sends one page view', async () => {
+    const { trackView } = await import('../src/chat/client/clicks');
+    const sendView = vi.fn<(key: string) => void>();
+    trackView(document.implementation.createHTMLDocument(), sendView);
+    expect(sendView.mock.calls).toEqual([['view']]);
+  });
+});

@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { parse, type Node } from 'ultrahtml';
 import { querySelector, querySelectorAll } from 'ultrahtml/selector';
 import { findForbidden } from '../scripts/forbidden';
-import { clickKeys } from '../src/data/clicks';
+import { VIEW_KEY, clickKeys } from '../src/data/clicks';
 import { profile } from '../src/data/profile';
 
 const root = join(import.meta.dirname, '..');
@@ -88,7 +88,8 @@ describe('one-page site', () => {
     const keys = clickKeys(profile.projects);
     expect(new Set(keys).size).toBe(keys.length);
     const marked = querySelectorAll(doc, 'a[data-click]').map((a: Node) => attr(a, 'data-click'));
-    expect(new Set(marked)).toEqual(new Set(keys));
+    // Every accepted name is a marked link, except the page view, which the page sends on load.
+    expect(new Set(marked)).toEqual(new Set(keys.filter((k) => k !== VIEW_KEY)));
     for (const a of querySelectorAll(doc, `a[href^="mailto:"]`)) expect(attr(a, 'data-click')).toBe('email');
     expect(attr(querySelector(doc, 'a[href="https://www.npmjs.com/package/go-insurance-checker"]'), 'data-click')).toBe('mcp-go-checker:npmjs');
   });

@@ -56,9 +56,11 @@ const analyticsToken: string | undefined = import.meta.env.PUBLIC_CF_ANALYTICS_T
     <a class="skip" href="#main">Skip to content</a>
     <slot />
     <script>
-      import { trackClicks } from '../chat/client/clicks';
+      import { trackClicks, trackView } from '../chat/client/clicks';
 
       trackClicks(document);
+      // Page views: the profile page only, not the 404 page.
+      if (!document.querySelector('meta[name="robots"][content="noindex"]')) trackView(document);
     </script>
   </body>
 </html>
