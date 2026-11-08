@@ -76,8 +76,17 @@ committed); `public/favicon.svg` is the source monogram.
 
 ## For search engines and AI tools
 
-`public/robots.txt` allows everything except `/api/` and points to `public/sitemap.xml`. `src/data/discovery.ts` builds
-the page's JSON-LD `Person` block and `/llms.txt` (`src/pages/llms.txt.ts`) from the public profile.
+- `public/robots.txt` allows everything (AI crawlers included) except `/api/` and points to the sitemap;
+  `src/pages/sitemap.xml.ts` builds it with the build date as `lastmod`.
+- `src/data/discovery.ts` builds, from the public profile only: the page's JSON-LD `@graph` (`WebSite`, `ProfilePage`,
+  `Person` with the Bulgarian spelling as `alternateName`, and `FAQPage`), `/llms.txt` (`src/pages/llms.txt.ts`, the
+  short profile) and `/llms-full.txt` (`src/pages/llms-full.txt.ts`, everything on the page as Markdown).
+- `profile.faq` holds short, concrete answers to the questions recruiters and AI assistants ask. It renders as the
+  "Questions people ask" section (`#faq`), goes into the JSON-LD and both llms files, and the chat's system prompt.
+  Every answer must restate facts already in the profile, never add new ones.
+- `src/pages/404.astro` is a real 404 page (`noindex`), so unknown URLs no longer return the home page with status 200.
+- `public/_headers` sends `X-Robots-Tag: noindex` on the `*.pages.dev` hosts, so only `plamen.lynxlake.org` is
+  indexed. `www.` is still served as a duplicate; its canonical link points to the apex.
 
 ## Security headers
 

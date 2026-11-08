@@ -1,0 +1,21 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Page not found — Plamen Markov" description="This page does not exist." noindex>
+  <main id="main" class="wrap notfound" tabindex="-1">
+    <h1>Page not found</h1>
+    <p>There is nothing at this address. <a href="/">Go to Plamen Markov's profile</a> or read it as plain text in <a href="/llms.txt">/llms.txt</a>.</p>
+  </main>
+</Base>
+
+<style>
+  .notfound {
+    padding-block: var(--section-gap);
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  h1 {
+    font-size: var(--step-3);
+  }
+</style>

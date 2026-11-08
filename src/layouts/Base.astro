@@ -1,14 +1,16 @@
 ---
 import '../styles/tokens.css';
-import { personJsonLd } from '../data/discovery';
+import { siteJsonLd } from '../data/discovery';
 import { profile } from '../data/profile';
 
 interface Props {
   title: string;
   description: string;
+  /** Keep the page out of search indexes (the 404 page). */
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
 // `site` is set in astro.config.mjs; absolute URLs for the canonical link and Open Graph.
 const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL('/og.png', Astro.site).href;
@@ -23,7 +25,7 @@ const analyticsToken: string | undefined = import.meta.env.PUBLIC_CF_ANALYTICS_T
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
-    <link rel="canonical" href={pageUrl} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={pageUrl} />}
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
@@ -36,7 +38,8 @@ const analyticsToken: string | undefined = import.meta.env.PUBLIC_CF_ANALYTICS_T
     <meta property="og:image:alt" content="Plamen Markov — Backend engineer building AI into production systems" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="alternate" type="text/plain" href="/llms.txt" title="Profile for AI tools" />
-    <script type="application/ld+json" is:inline set:html={personJsonLd(profile)} />
+    <link rel="alternate" type="text/plain" href="/llms-full.txt" title="Full profile for AI tools" />
+    {!noindex && <script type="application/ld+json" is:inline set:html={siteJsonLd(profile)} />}
     {
       analyticsToken && (
         <script
