@@ -23,6 +23,11 @@ export interface Role {
   highlights: string[];
 }
 
+export interface Outcome {
+  figure: string;
+  label: string;
+}
+
 export interface StackGroup {
   name: 'AI/LLM' | 'Backend' | 'Frontend' | 'Infra' | 'Quality';
   items: string[];
@@ -35,6 +40,7 @@ export interface Profile {
   location: string;
   email: string;
   links: { linkedin: Link; github: Link; cv: Link };
+  outcomes: Outcome[];
   summary: string;
   aiWorkflow: string[];
   projects: Project[];

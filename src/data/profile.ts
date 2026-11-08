@@ -18,11 +18,20 @@ export const profile: Profile = {
     cv: { label: 'Download CV', href: '/cv/Plamen_Markov_CV.pdf' },
   },
 
+  outcomes: [
+    {
+      figure: '5–6 h → 10–15 min',
+      label: 'simple court-format fire report, drafted by a Claude plugin and signed by the expert. Complex case: 7–8 h → 2–2.5 h with reviews',
+    },
+    { figure: '26,000+', label: 'legacy insurance policies migrated, with a parity-tested cutover' },
+    { figure: '13 years', label: 'owning one production platform, author of 86.5% of its surviving code' },
+  ],
+
   summary:
-    'Builds LLM features into production software and owns them after launch: a tool-calling agent that is never allowed ' +
-    'to compute a figure itself, a Claude plugin held to an LLM-judge eval suite, an MCP server published on npm, and ' +
-    'vision OCR. Before that, two decades of remote backend work, most of it as the engineer responsible for the whole ' +
-    'system – one platform for 13 years, from architecture and data model to rollout and maintenance. ' +
+    'Builds LLM features into production software and owns them after launch: a Claude plugin held to LLM-judge evals, a ' +
+    'reporting agent that takes every figure from a named tool call, an MCP server published on npm, and vision OCR. ' +
+    'Before that, two decades of remote backend work, most of it as the engineer responsible for the whole system, ' +
+    'from architecture and data model to rollout and maintenance. ' +
     'PHP and Laravel are the foundation; TypeScript and LLM integration are where the work is heading.',
 
   aiWorkflow: [
@@ -55,16 +64,18 @@ export const profile: Profile = {
       id: 'fire-report-plugin',
       title: 'Claude plugin that drafts forensic fire-investigation reports',
       problem:
-        'A court-format forensic fire-investigation report took an expert 5–6 hours at a desktop, working by hand through a ' +
-        'case file of 45–70 pages: the appointment order, scene inspection report, photo album, witness statements and other ' +
+        'By the experts\' own estimate, a court-format forensic fire-investigation report takes 5–6 hours at a desktop on a simple ' +
+        'case and 7–8 on a complex one, working by hand through a case file that usually runs to 45–70 pages: the appointment order, scene inspection report, photo album, witness statements and other ' +
         'expert reports.',
       approach:
-        'A Claude plugin made of reusable Claude Code skills. The expert photographs the 15–20 key pages; the plugin reads them and drafts the report on the required ' +
+        'A Claude plugin made of reusable Claude Code skills. The expert photographs the key pages, 10–15 on a simple case and 76 on a recent complex one; the plugin reads them and drafts the report on the required ' +
         'template. A mechanical check and a separate AI reviewer examine every draft before the expert signs it. Regression evals ' +
         'with an LLM judge run in CI, including trap cases where the correct answer is "no data" rather than an invented one. ' +
         'Personal-data checks are enforced in code, not left to the prompt.',
       result:
-        'About 10–15 minutes per report instead of 5–6 hours, from a phone. The LLM judge catches all six planted fabricated ' +
+        'A simple case takes about 10–15 minutes instead of 5–6 hours, from a phone. A recent non-standard case with 76 photos took ' +
+        '2–2.5 hours with reviews instead of 7–8; that included fine-tuning the skill, and the finished report was saved as a ' +
+        'template for future cases. The LLM judge catches all six planted fabricated ' +
         'facts in its eval set, and every rule in the plugin traces back to a failure an eval caught.',
       tags: ['Claude plugin', 'Claude Code skills', 'LLM-judge evals', 'Vision', 'MCP', 'CI'],
       links: [{ label: 'Source on GitHub', href: 'https://github.com/plamen911/fire-service-skills' }],

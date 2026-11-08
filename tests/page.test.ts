@@ -53,6 +53,15 @@ describe('one-page site', () => {
     expect(body).toContain(profile.availability);
   });
 
+  it('shows every outcome figure in the hero, before the summary', () => {
+    const hero = text(querySelector(doc, 'header.hero'));
+    for (const { figure, label } of profile.outcomes) {
+      expect(hero).toContain(figure);
+      expect(hero).toContain(label);
+    }
+    expect(hero.indexOf(profile.outcomes[0].figure)).toBeLessThan(hero.indexOf(profile.summary));
+  });
+
   it('links email and CV', () => {
     expect(querySelector(doc, 'a[href="mailto:plamen326@gmail.com"]')).toBeTruthy();
     expect(querySelector(doc, 'a[href="/cv/Plamen_Markov_CV.pdf"]')).toBeTruthy();

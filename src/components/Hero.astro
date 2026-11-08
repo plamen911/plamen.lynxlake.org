@@ -34,6 +34,11 @@ const cvLead = links.cv.label.endsWith(cvShort) ? links.cv.label.slice(0, -cvSho
       <h1>{profile.name}</h1>
       <p class="tagline">{profile.tagline}</p>
       <p class="badge"><span class="dot" aria-hidden="true"></span>{profile.availability}</p>
+      <ul class="outcomes" aria-label="Selected outcomes">
+        {profile.outcomes.map(({ figure, label }) => (
+          <li><strong>{figure}</strong> <span>{label}</span></li>
+        ))}
+      </ul>
       <p class="summary">{profile.summary}</p>
       <ul class="actions">
         <li><a class="btn primary" data-click="cv" href={links.cv.href} target="_blank" rel="noopener" aria-label={links.cv.label}>{cvLead ? <><span class="cv-lead">{cvLead}</span>{cvShort}</> : links.cv.label}</a></li>
@@ -161,6 +166,27 @@ const cvLead = links.cv.label.endsWith(cvShort) ? links.cv.label.slice(0, -cvSho
     border-radius: 50%;
     background: currentColor;
     flex: none;
+  }
+
+  .outcomes {
+    display: grid;
+    gap: 0.9rem;
+    list-style: none;
+    margin: 1.75rem 0 0;
+    padding: 0;
+    max-width: 60ch;
+  }
+
+  .outcomes strong {
+    display: block;
+    color: var(--hero-text);
+    font-size: var(--step-1);
+    line-height: 1.2;
+  }
+
+  .outcomes span {
+    color: var(--hero-muted);
+    font-size: var(--step--1);
   }
 
   .summary {

@@ -108,6 +108,7 @@ export function buildSystemPrompt(profile: Profile): string {
   const sections = [
     `# ${profile.name}: professional profile`,
     `### Summary (cite as #experience)\n\n${profile.tagline}\n\n${profile.summary}`,
+    `### Headline outcomes (the fire report is cited as #projects, the others as #experience)\n\n${bullets(profile.outcomes.map((o) => `${o.figure}: ${o.label}`))}`,
     `## #projects\n\n${projectsSection(profile)}`,
     `## #ai-workflow\n\n${bullets(profile.aiWorkflow)}`,
     `## #experience\n\n${experienceSection(profile)}`,
