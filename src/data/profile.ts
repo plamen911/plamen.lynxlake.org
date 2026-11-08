@@ -249,7 +249,8 @@ export const profile: Profile = {
   languages: ['Bulgarian – native', 'English – B2 (working level)'],
 
   terms: [
-    'Remote, B2B contract',
+    'Always remote, always a B2B contract',
+    'Part-time to full-time',
     'Available to start immediately',
     'Async-friendly',
     'European hours, with US overlap',
@@ -260,12 +261,12 @@ export const profile: Profile = {
   faq: [
     {
       q: 'Is Plamen Markov available for new work?',
-      a: 'Yes. He is available to start immediately on a remote B2B contract. He works from Pleven, ' +
+      a: 'Yes. He is available to start immediately, part-time to full-time, always remote on a B2B contract. He works from Pleven, ' +
         'Bulgaria, in European hours (UTC+2) with overlap with US time zones, and is comfortable working async.',
     },
     {
       q: 'What kind of engagement does he take?',
-      a: 'Remote B2B contracts only, as a contractor rather than an employee. His longest engagements ran 13 and 20 years; ' +
+      a: 'Remote B2B contracts only, as a contractor rather than an employee, from part-time to full-time. His longest engagements ran 13 and 20 years; ' +
         'he usually owns a system end to end, from requirements and data model to deployment and maintenance.',
     },
     {
