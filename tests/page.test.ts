@@ -125,7 +125,7 @@ describe('one-page site', () => {
 
   it('has the page meta', () => {
     expect(querySelector(doc, 'html').attributes.lang).toBe('en');
-    expect(text(querySelector(doc, 'title'))).toBe('Plamen Markov — Backend & AI Engineer');
+    expect(text(querySelector(doc, 'title'))).toBe('Plamen Markov — Senior Backend & AI Engineer');
     expect(attr(querySelector(doc, 'meta[name="description"]'), 'content')).toContain(profile.tagline);
     expect(querySelector(doc, 'meta[property="og:title"]')).toBeTruthy();
     expect(querySelector(doc, 'meta[property="og:description"]')).toBeTruthy();
