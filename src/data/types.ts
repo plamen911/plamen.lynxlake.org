@@ -33,6 +33,11 @@ export interface StackGroup {
   items: string[];
 }
 
+export interface FaqItem {
+  q: string;
+  a: string;
+}
+
 export interface Profile {
   name: string;
   tagline: string;
@@ -49,5 +54,7 @@ export interface Profile {
   education: string[];
   languages: string[];
   terms: string[];
+  /** Direct answers to the questions people ask about him; rendered on the page, in JSON-LD and in /llms.txt. */
+  faq: FaqItem[];
   starterQuestions: [string, string, string];
 }

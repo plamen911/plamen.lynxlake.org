@@ -170,20 +170,54 @@ describe('one-page site', () => {
   });
 
   it('describes him for search engines and AI tools, from the public profile', () => {
-    const data = JSON.parse(text(querySelector(doc, 'script[type="application/ld+json"]')));
-    expect(data['@type']).toBe('Person');
-    expect(data.name).toBe(profile.name);
-    expect(data.sameAs).toEqual([profile.links.linkedin.href, profile.links.github.href]);
-    expect(data.knowsAbout.length).toBeGreaterThan(0);
+    const ld = readFileSync(join(root, 'dist', 'index.html'), 'utf8').match(
+      /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
+    )?.[1];
+    const graph: Record<string, any>[] = JSON.parse(ld ?? '')['@graph'];
+    const byType = (t: string) => graph.find((n) => n['@type'] === t);
+    expect(graph.map((n) => n['@type'])).toEqual(['WebSite', 'ProfilePage', 'Person', 'FAQPage']);
+    const person = byType('Person')!;
+    expect(person.name).toBe(profile.name);
+    expect(person.alternateName).toBe('Пламен Марков');
+    expect(person.sameAs).toEqual([profile.links.linkedin.href, profile.links.github.href]);
+    expect(person.knowsAbout.length).toBeGreaterThan(0);
+    expect(byType('ProfilePage')!.mainEntity['@id']).toBe(person['@id']);
+    expect(byType('ProfilePage')!.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(byType('FAQPage')!.mainEntity.map((q: any) => q.name)).toEqual(profile.faq.map((f) => f.q));
+    expect(findForbidden(ld ?? '')).toEqual([]);
     const llms = readFileSync(join(root, 'dist', 'llms.txt'), 'utf8');
     expect(llms.startsWith(`# ${profile.name}\n\n> ${profile.tagline}`)).toBe(true);
     expect(llms).toContain('https://plamen.lynxlake.org/cv/Plamen_Markov_CV.pdf');
     for (const project of profile.projects) expect(llms).toContain(project.title);
+    expect(llms).toContain('https://plamen.lynxlake.org/llms-full.txt');
+    for (const f of profile.faq) expect(llms).toContain(f.q);
     expect(findForbidden(llms)).toEqual([]);
+    const full = readFileSync(join(root, 'dist', 'llms-full.txt'), 'utf8');
+    for (const role of profile.experience) expect(full).toContain(role.org);
+    for (const project of profile.projects) expect(full).toContain(project.approach);
+    expect(findForbidden(full)).toEqual([]);
     const robots = readFileSync(join(root, 'dist', 'robots.txt'), 'utf8');
     expect(robots).toContain('Disallow: /api/');
     expect(robots).toContain('Sitemap: https://plamen.lynxlake.org/sitemap.xml');
-    expect(existsSync(join(root, 'dist', 'sitemap.xml'))).toBe(true);
+    const sitemap = readFileSync(join(root, 'dist', 'sitemap.xml'), 'utf8');
+    expect(sitemap).toContain('<loc>https://plamen.lynxlake.org/</loc>');
+    expect(sitemap).toMatch(/<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
+  });
+
+  it('answers the common questions on the page', () => {
+    const faq = querySelector(doc, '#faq');
+    expect(faq).toBeTruthy();
+    expect(querySelectorAll(faq, 'dt').map((dt: Node) => text(dt))).toEqual(profile.faq.map((f) => f.q));
+    expect(querySelector(doc, 'nav a[href="#faq"]')).toBeTruthy();
+  });
+
+  it('ships a real 404 page that is not indexed', () => {
+    const notFound = parse(readFileSync(join(root, 'dist', '404.html'), 'utf8'));
+    expect(attr(querySelector(notFound, 'meta[name="robots"]'), 'content')).toBe('noindex');
+    expect(querySelector(notFound, 'link[rel="canonical"]')).toBeFalsy();
+    expect(querySelector(notFound, 'script[type="application/ld+json"]')).toBeFalsy();
+    const headers = readFileSync(join(root, 'dist', '_headers'), 'utf8');
+    expect(headers).toMatch(/https:\/\/:project\.pages\.dev\/\*\n\s+X-Robots-Tag: noindex/);
   });
 
   it('omits the analytics beacon when no token is set', () => {

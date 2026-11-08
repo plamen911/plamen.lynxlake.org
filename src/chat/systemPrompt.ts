@@ -126,6 +126,7 @@ export function buildSystemPrompt(profile: Profile): string {
       'Terms:',
       bullets(profile.terms),
     ].join('\n'),
+    `### Common questions (these repeat facts from the sections above: cite the section each fact comes from)\n\n${profile.faq.map((f) => `Q: ${f.q}\nA: ${f.a}`).join('\n\n')}`,
   ];
   return `<profile>\n${sections.join('\n\n')}\n</profile>\n\n${rules(profile.email)}\n`;
 }

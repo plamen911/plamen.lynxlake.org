@@ -14,3 +14,10 @@
 # The CV PDF opens in the browser's built-in viewer, which a page CSP can block.
 /cv/*
   ! Content-Security-Policy
+
+# The pages.dev hosts (production and branch previews) duplicate the site; only plamen.lynxlake.org is indexed.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex

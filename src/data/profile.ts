@@ -260,10 +260,54 @@ export const profile: Profile = {
   languages: ['Bulgarian – native', 'English – B2 (working level)'],
 
   terms: [
-    'Remote, B2B contract',
+    'Always remote, always a B2B contract',
+    'Part-time to full-time',
     'Available to start immediately',
     'Async-friendly',
     'European hours, with US overlap',
+  ],
+
+  // Short, concrete answers to the questions recruiters and AI assistants actually ask.
+  // Every fact here is already stated elsewhere in this file.
+  faq: [
+    {
+      q: 'Is Plamen Markov available for new work?',
+      a: 'Yes. He is available to start immediately, part-time to full-time, always remote on a B2B contract. He works from Pleven, ' +
+        'Bulgaria, in European hours (UTC+2) with overlap with US time zones, and is comfortable working async.',
+    },
+    {
+      q: 'What kind of engagement does he take?',
+      a: 'Remote B2B contracts only, as a contractor rather than an employee, from part-time to full-time. His longest engagements ran 13 and 20 years; ' +
+        'he usually owns a system end to end, from requirements and data model to deployment and maintenance.',
+    },
+    {
+      q: 'What AI work has he shipped to production?',
+      a: 'A tool-calling reporting agent on Laravel that never computes a figure itself; a Claude plugin that drafts forensic ' +
+        'fire-investigation reports in 10–15 minutes instead of 5–6 hours, checked by LLM-judge evals in CI; an MCP server ' +
+        'for the Bulgarian motor-insurance register, published on npm; and GPT-4o vision OCR that pre-fills 17 fields from ' +
+        'vehicle registration certificates.',
+    },
+    {
+      q: 'Can he take over and modernise a legacy PHP codebase?',
+      a: 'Yes, that is most of his track record. He rebuilt an occupational-health system in place from PHP 5.6 to PHP 8.2, ' +
+        'extracting 114 domain services from 172 page scripts, and moved 26,000+ legacy insurance policies into a new Laravel ' +
+        'platform with a parity-tested cutover. He also introduced 436 tests to a three-year-old codebase that had almost none.',
+    },
+    {
+      q: 'How does he use AI coding tools without lowering code quality?',
+      a: 'He has used Claude Code daily for over a year inside client production codebases. Every agent-written change is read, ' +
+        'tested and verified before it ships, and CI gates such as PHPStan level 9 and the test suite run on every push.',
+    },
+    {
+      q: 'What is his main tech stack?',
+      a: 'PHP 8 and Laravel (20+ years of PHP), MySQL/MariaDB, PostgreSQL, Redis, TypeScript and Node.js, ' +
+        'plus the Anthropic and OpenAI APIs, MCP servers and Claude Code skills for AI work.',
+    },
+    {
+      q: 'How can I contact him?',
+      a: 'Email plamen326@gmail.com, or reach him on LinkedIn. His CV is at https://plamen.lynxlake.org/cv/Plamen_Markov_CV.pdf, ' +
+        'and the AI assistant on https://plamen.lynxlake.org/ answers questions about his work, including how he fits a job description.',
+    },
   ],
 
   starterQuestions: ['What AI work has he shipped?', 'Is he available?', "What's his stack?"],

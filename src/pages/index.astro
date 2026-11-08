@@ -5,6 +5,7 @@ import Projects from '../components/Projects.astro';
 import AiWorkflow from '../components/AiWorkflow.astro';
 import Experience from '../components/Experience.astro';
 import Stack from '../components/Stack.astro';
+import Faq from '../components/Faq.astro';
 import Contact from '../components/Contact.astro';
 import Footer from '../components/Footer.astro';
 import { profile } from '../data/profile';
@@ -19,6 +20,7 @@ const description = `${profile.name}: ${profile.tagline}. ${profile.availability
     <AiWorkflow points={profile.aiWorkflow} />
     <Experience roles={profile.experience} />
     <Stack groups={profile.stack} />
+    <Faq items={profile.faq} />
     <Contact profile={profile} />
   </main>
   <Footer name={profile.name} tagline={profile.tagline} />
