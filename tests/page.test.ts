@@ -183,7 +183,7 @@ describe('one-page site', () => {
     expect(person.sameAs).toEqual([profile.links.linkedin.href, profile.links.github.href]);
     expect(person.knowsAbout.length).toBeGreaterThan(0);
     expect(byType('ProfilePage')!.mainEntity['@id']).toBe(person['@id']);
-    expect(byType('ProfilePage')!.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(byType('ProfilePage')!.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
     expect(byType('FAQPage')!.mainEntity.map((q: any) => q.name)).toEqual(profile.faq.map((f) => f.q));
     expect(findForbidden(ld ?? '')).toEqual([]);
     const llms = readFileSync(join(root, 'dist', 'llms.txt'), 'utf8');

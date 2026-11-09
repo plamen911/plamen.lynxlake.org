@@ -5,12 +5,14 @@ const absolute = (href: string): string => new URL(href, SITE).href;
 
 /** Today's date (YYYY-MM-DD) at build time: the site is static, so a build is a content change. */
 export const buildDate = (): string => new Date().toISOString().slice(0, 10);
+// schema.org DateTime (ISO 8601 with time and zone) - Google rejects a bare date in ProfilePage.dateModified
+export const buildDateTime = (): string => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 /**
  * The page's JSON-LD graph: the site, the profile page, the person it is about and the FAQ, for search engines and
  * AI tools. Built from the public profile only.
  */
-export function siteJsonLd(profile: Profile, dateModified: string = buildDate()): string {
+export function siteJsonLd(profile: Profile, dateModified: string = buildDateTime()): string {
   const { links } = profile;
   const person = `${SITE}/#person`;
   const website = `${SITE}/#website`;
