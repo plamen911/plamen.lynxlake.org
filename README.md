@@ -1,6 +1,6 @@
 # plamen-site
 
-Personal website for Plamen Markov, live at <https://plamen.lynxlake.org> (and `www.`): a one-page Astro static site
+Personal website for Plamen Markov, live at <https://plamen.lynxlake.org> (`www.` redirects there): a one-page Astro static site
 with an AI chat about his work and a "Leave your email" contact form, both served by Cloudflare Pages Functions.
 
 ## Layout
@@ -86,7 +86,8 @@ committed); `public/favicon.svg` is the source monogram.
   Every answer must restate facts already in the profile, never add new ones.
 - `src/pages/404.astro` is a real 404 page (`noindex`), so unknown URLs no longer return the home page with status 200.
 - `public/_headers` sends `X-Robots-Tag: noindex` on the `*.pages.dev` hosts, so only `plamen.lynxlake.org` is
-  indexed. `www.` is still served as a duplicate; its canonical link points to the apex.
+  indexed. `functions/_middleware.ts` sends `www.plamen.lynxlake.org` to the apex with a 301 (308 for non-GET), path
+  and query kept; the DNS zone is not on Cloudflare, so a zone Redirect Rule is not an option.
 
 ## Security headers
 
