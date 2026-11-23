@@ -11,6 +11,8 @@ export interface Project {
   result: string;
   tags: string[];
   links?: Link[];
+  /** A page of its own on this site, as a root-relative path, e.g. `/go-insurance-checker/`. */
+  page?: string;
   tense: 'present' | 'past';
 }
 

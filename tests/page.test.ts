@@ -202,6 +202,8 @@ describe('one-page site', () => {
     expect(robots).toContain('Sitemap: https://plamen.lynxlake.org/sitemap.xml');
     const sitemap = readFileSync(join(root, 'dist', 'sitemap.xml'), 'utf8');
     expect(sitemap).toContain('<loc>https://plamen.lynxlake.org/</loc>');
+    expect(sitemap).toContain('<loc>https://plamen.lynxlake.org/go-insurance-checker/</loc>');
+    expect(llms).toContain('https://plamen.lynxlake.org/go-insurance-checker/');
     expect(sitemap).toMatch(/<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
   });
 
@@ -223,5 +225,58 @@ describe('one-page site', () => {
 
   it('omits the analytics beacon when no token is set', () => {
     expect(querySelector(doc, 'script[src*="cloudflareinsights"]')).toBeFalsy();
+  });
+});
+
+describe('go-insurance-checker page', () => {
+  let page: Node;
+  let html: string;
+
+  beforeAll(() => {
+    // The build ran in the first describe's beforeAll.
+    html = readFileSync(join(root, 'dist', 'go-insurance-checker', 'index.html'), 'utf8');
+    page = parse(html);
+  });
+
+  it('names the package and its author', () => {
+    expect(text(querySelector(page, 'h1')).trim()).toBe('go-insurance-checker');
+    expect(text(querySelector(page, 'title'))).toContain('by Plamen Markov');
+    expect(attr(querySelector(page, 'a[rel="author"]'), 'href')).toBe('/');
+    expect(attr(querySelector(page, 'link[rel="canonical"]'), 'href')).toBe('https://plamen.lynxlake.org/go-insurance-checker/');
+  });
+
+  it('links npm and GitHub with the click names the API accepts', () => {
+    const keys = clickKeys(profile.projects);
+    for (const a of querySelectorAll(page, 'a[data-click]')) expect(keys).toContain(attr(a, 'data-click'));
+    expect(querySelector(page, 'a[href="https://www.npmjs.com/package/go-insurance-checker"]')).toBeTruthy();
+    expect(querySelector(page, 'a[href="https://github.com/plamen911/go-insurance-checker"]')).toBeTruthy();
+  });
+
+  it('describes the software and its author in JSON-LD', () => {
+    const ld = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
+    const graph: Record<string, any>[] = JSON.parse(ld ?? '')['@graph'];
+    const byType = (t: string) => graph.find((n) => n['@type'] === t);
+    expect(graph.map((n) => n['@type'])).toEqual(['WebPage', 'SoftwareApplication', 'SoftwareSourceCode', 'Person', 'FAQPage']);
+    const person = byType('Person')!;
+    expect(person['@id']).toBe('https://plamen.lynxlake.org/#person');
+    expect(byType('SoftwareApplication')!.author['@id']).toBe(person['@id']);
+    expect(byType('SoftwareSourceCode')!.codeRepository).toBe('https://github.com/plamen911/go-insurance-checker');
+    const faq = querySelectorAll(page, '#faq dt').map((dt: Node) => text(dt));
+    expect(byType('FAQPage')!.mainEntity.map((q: any) => q.name)).toEqual(faq);
+    expect(findForbidden(ld ?? '')).toEqual([]);
+    expect(findForbidden(text(querySelector(page, 'body')))).toEqual([]);
+  });
+
+  it('is linked from the project card on the profile page', () => {
+    const card = querySelector(doc, 'article.project#project-mcp-go-checker');
+    expect(querySelector(card, 'a[href="/go-insurance-checker/"]')).toBeTruthy();
+  });
+
+  it('has no inline scripts or style attributes', () => {
+    for (const script of querySelectorAll(page, 'script').filter((s: Node) => attr(s, 'type') !== 'application/ld+json')) {
+      expect(attr(script, 'src'), 'every script is external').toBeTruthy();
+    }
+    expect(querySelectorAll(page, 'style')).toHaveLength(0);
+    expect(html).not.toMatch(/\sstyle=/i);
   });
 });

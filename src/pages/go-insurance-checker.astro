@@ -1,0 +1,263 @@
+---
+import Base from '../layouts/Base.astro';
+import Footer from '../components/Footer.astro';
+import { goChecker, goCheckerJsonLd } from '../data/discovery';
+import { profile } from '../data/profile';
+
+// A page of its own for the npm package, so search engines and AI tools can tie go-insurance-checker to its author.
+const project = profile.projects.find((p) => p.id === 'mcp-go-checker');
+if (!project) throw new Error('The mcp-go-checker project is missing from the profile');
+
+const title = `${goChecker.name} — MCP server for Bulgarian motor insurance, by ${profile.name}`;
+const description = `${goChecker.description} Free on npm, source on GitHub.`;
+const config = JSON.stringify(
+  { mcpServers: { [goChecker.name]: { command: 'npx', args: ['-y', goChecker.name] } } },
+  null,
+  2,
+);
+// The copy marks commands with backticks; show those as inline code.
+const segments = (text: string) => text.split('`').map((value, i) => ({ value, code: i % 2 === 1 }));
+const story = [
+  { term: 'Problem', text: project.problem },
+  { term: 'Approach', text: project.approach },
+  { term: 'Result', text: project.result },
+];
+---
+<Base title={title} description={description} jsonLd={goCheckerJsonLd(profile)}>
+  <header class="top">
+    <nav class="wrap" aria-label="Breadcrumb">
+      <ol class="crumbs">
+        <li><a href="/">{profile.name}</a></li>
+        <li aria-current="page">{goChecker.name}</li>
+      </ol>
+    </nav>
+    <div class="wrap intro">
+      <p class="kicker">Open-source MCP server · TypeScript · MIT</p>
+      <h1>{goChecker.name}</h1>
+      <p class="lead">{goChecker.description}</p>
+      <p class="byline">
+        Built and maintained by <a href="/" rel="author">{profile.name}</a>, Senior Backend &amp; AI Engineer from Pleven,
+        Bulgaria. {profile.availability}.
+      </p>
+      <ul class="actions">
+        <li><a class="btn primary" data-click="mcp-go-checker:npmjs" href={goChecker.npm} target="_blank" rel="noopener noreferrer">Package on npm<span aria-hidden="true"> ↗</span></a></li>
+        <li><a class="btn" data-click="mcp-go-checker:github" href={goChecker.github} target="_blank" rel="noopener noreferrer">Source on GitHub<span aria-hidden="true"> ↗</span></a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1" class="wrap content">
+    <section aria-labelledby="use-title">
+      <h2 id="use-title">Use it in any MCP client</h2>
+      <p>No clone and no install: add it to the client's configuration and <code>npx</code> fetches it on first run.</p>
+      <pre><code>{config}</code></pre>
+      <p>Node.js 18 or newer. A check takes about 5–15 seconds.</p>
+    </section>
+
+    <section aria-labelledby="tool-title">
+      <h2 id="tool-title">The tool: <code>check_active_go</code></h2>
+      <div class="table">
+        <table>
+          <thead>
+            <tr><th scope="col">Argument</th><th scope="col">Type</th><th scope="col">Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>car_no</code></td><td>string, required</td><td>Registration plate, e.g. <code>CB8495HM</code></td></tr>
+            <tr><td><code>check_date</code></td><td>string, optional</td><td>Date to check, <code>YYYY-MM-DD</code>; today by default</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>It answers with a short summary of the insurance status in Bulgarian.</p>
+    </section>
+
+    <section aria-labelledby="story-title">
+      <h2 id="story-title">Why he built it</h2>
+      <dl class="story">
+        {story.map(({ term, text }) => (
+          <div>
+            <dt>{term}</dt>
+            <dd>{segments(text).map(({ value, code }) => (code ? <code>{value}</code> : value))}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions about go-insurance-checker</h2>
+      <dl class="faq">
+        {goChecker.faq.map((f) => (
+          <div>
+            <dt>{f.q}</dt>
+            <dd>{f.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <p class="more">
+      More of his MCP and LLM work in production is on <a href="/#projects">{profile.name}'s profile</a>.
+    </p>
+  </main>
+  <Footer name={profile.name} tagline={profile.tagline} />
+</Base>
+
+<style>
+  .top {
+    background: var(--hero-bg);
+    color: var(--hero-text);
+    padding-block: 1.5rem clamp(3rem, 2rem + 4vw, 5rem);
+  }
+
+  .top a {
+    color: var(--hero-accent);
+  }
+
+  .crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--step--1);
+    color: var(--hero-muted);
+  }
+
+  .crumbs li + li::before {
+    content: '/';
+    margin-right: 0.5rem;
+  }
+
+  .intro {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: clamp(2.5rem, 2rem + 3vw, 4rem);
+  }
+
+  .kicker {
+    color: var(--hero-muted);
+    font-size: var(--step--1);
+    letter-spacing: 0.02em;
+  }
+
+  h1 {
+    font-size: var(--step-4);
+    overflow-wrap: anywhere;
+  }
+
+  .lead {
+    font-size: var(--step-1);
+    max-width: var(--measure);
+  }
+
+  .byline {
+    color: var(--hero-muted);
+    max-width: var(--measure);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.65rem 1.1rem;
+    border: 1px solid var(--hero-line);
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .top .btn.primary {
+    background: var(--hero-accent);
+    border-color: var(--hero-accent);
+    color: var(--hero-bg);
+  }
+
+  .content {
+    display: grid;
+    gap: clamp(3rem, 2rem + 3vw, 4.5rem);
+    padding-block: clamp(3rem, 2rem + 4vw, 5rem) 0;
+  }
+
+  section {
+    display: grid;
+    gap: 1rem;
+    max-width: var(--measure);
+  }
+
+  h2 {
+    font-size: var(--step-2);
+  }
+
+  code {
+    font-size: 0.9em;
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  pre {
+    margin: 0;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+
+  pre code {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .table {
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: var(--step--1);
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  .story,
+  .faq {
+    display: grid;
+    gap: 1.5rem;
+    margin: 0;
+  }
+
+  dt {
+    font-weight: 700;
+  }
+
+  .story dt {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0.3rem 0 0;
+  }
+
+  .more {
+    max-width: var(--measure);
+    color: var(--muted);
+  }
+</style>

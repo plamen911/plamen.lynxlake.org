@@ -16,6 +16,7 @@ function projectsSection(profile: Profile): string {
         `- Result: ${p.result}`,
         `- Tags: ${p.tags.join(', ')}`,
         ...(p.links ?? []).map((l) => `- Link: ${l.label} (${l.href})`),
+        ...(p.page ? [`- Page on this site: https://plamen.lynxlake.org${p.page}`] : []),
       ].join('\n'),
     )
     .join('\n\n');

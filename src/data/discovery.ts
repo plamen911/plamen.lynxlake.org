@@ -78,6 +78,118 @@ export function siteJsonLd(profile: Profile, dateModified: string = buildDateTim
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
+/** The go-insurance-checker page: its address, its facts and its questions, shared by the page and its JSON-LD. */
+export const goChecker = {
+  path: '/go-insurance-checker/',
+  name: 'go-insurance-checker',
+  github: 'https://github.com/plamen911/go-insurance-checker',
+  npm: 'https://www.npmjs.com/package/go-insurance-checker',
+  description:
+    'An open-source MCP server, written by Plamen Markov, that checks whether a Bulgarian vehicle has active mandatory ' +
+    'motor third-party liability insurance (Гражданска отговорност, GO) on a given date.',
+  faq: [
+    {
+      q: 'Who built go-insurance-checker?',
+      a: 'Plamen Markov, a Senior Backend & AI Engineer from Pleven, Bulgaria. He wrote it, published it on npm under his name ' +
+        'and maintains the source at github.com/plamen911/go-insurance-checker.',
+    },
+    {
+      q: 'What does go-insurance-checker check?',
+      a: 'Whether a vehicle registered in Bulgaria has active mandatory motor liability insurance (Гражданска отговорност) on a ' +
+        'given date, by its registration plate. It automates the lookup in the official register of the Guarantee Fund and ' +
+        'answers with a short summary in Bulgarian.',
+    },
+    {
+      q: 'Is go-insurance-checker a product of an insurer or a broker platform?',
+      a: 'No. It is an independent open-source project under the MIT license, written by Plamen Markov. He built the check for ' +
+        "an insurance brokerage's online sales form, which now uses it to decide whether a car can be insured and from which date.",
+    },
+  ],
+} as const;
+
+/** JSON-LD for the go-insurance-checker page: the page, the software, its source code and its author. */
+export function goCheckerJsonLd(profile: Profile, dateModified: string = buildDateTime()): string {
+  const person = `${SITE}/#person`;
+  const pageUrl = absolute(goChecker.path);
+  const software = `${pageUrl}#software`;
+  const data = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${pageUrl}#webpage`,
+        url: pageUrl,
+        name: `${goChecker.name} — MCP server for Bulgarian motor insurance, by ${profile.name}`,
+        inLanguage: 'en',
+        isPartOf: { '@id': `${SITE}/#website` },
+        about: { '@id': software },
+        author: { '@id': person },
+        dateModified,
+        breadcrumb: {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: profile.name, item: `${SITE}/` },
+            { '@type': 'ListItem', position: 2, name: goChecker.name, item: pageUrl },
+          ],
+        },
+      },
+      {
+        '@type': 'SoftwareApplication',
+        '@id': software,
+        name: goChecker.name,
+        alternateName: 'GO insurance checker MCP server',
+        description: goChecker.description,
+        url: pageUrl,
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Any (Node.js 18 or newer)',
+        downloadUrl: goChecker.npm,
+        installUrl: goChecker.npm,
+        license: 'https://opensource.org/licenses/MIT',
+        isAccessibleForFree: true,
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+        keywords: 'MCP, Model Context Protocol, Bulgaria, motor insurance, Гражданска отговорност, Guarantee Fund',
+        author: { '@id': person },
+        creator: { '@id': person },
+        maintainer: { '@id': person },
+        sameAs: [goChecker.npm, goChecker.github],
+      },
+      {
+        '@type': 'SoftwareSourceCode',
+        '@id': `${pageUrl}#source`,
+        name: goChecker.name,
+        codeRepository: goChecker.github,
+        programmingLanguage: 'TypeScript',
+        runtimePlatform: 'Node.js',
+        license: 'https://opensource.org/licenses/MIT',
+        author: { '@id': person },
+        targetProduct: { '@id': software },
+      },
+      {
+        '@type': 'Person',
+        '@id': person,
+        name: profile.name,
+        alternateName: 'Пламен Марков',
+        url: `${SITE}/`,
+        jobTitle: 'Senior Backend & AI Engineer',
+        sameAs: [profile.links.linkedin.href, profile.links.github.href],
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': `${pageUrl}#faq`,
+        url: `${pageUrl}#faq`,
+        isPartOf: { '@id': `${pageUrl}#webpage` },
+        about: { '@id': software },
+        mainEntity: goChecker.faq.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      },
+    ],
+  };
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
 /** /llms.txt: the profile as plain Markdown, for AI tools that read a site on someone's behalf. */
 export function llmsTxt(profile: Profile): string {
   const { links } = profile;
@@ -93,6 +205,7 @@ export function llmsTxt(profile: Profile): string {
     `## Links\n\n${[
       `- [Website with an AI assistant](${SITE}/)`,
       `- [Full profile as Markdown: experience, projects in detail, education](${SITE}/llms-full.txt)`,
+      `- [go-insurance-checker, his MCP server for Bulgarian motor insurance](${absolute(goChecker.path)})`,
       `- [${links.cv.label}](${absolute(links.cv.href)})`,
       `- [${links.linkedin.label}](${links.linkedin.href})`,
       `- [${links.github.label}](${links.github.href})`,
@@ -132,6 +245,7 @@ export function llmsFullTxt(profile: Profile, updated: string = buildDate()): st
     `## Contact\n\n${[
       `- Email: ${profile.email}`,
       `- Website with an AI assistant: ${SITE}/`,
+      `- go-insurance-checker, his MCP server for Bulgarian motor insurance: ${absolute(goChecker.path)}`,
       `- ${links.cv.label}: ${absolute(links.cv.href)}`,
       `- ${links.linkedin.label}: ${links.linkedin.href}`,
       `- ${links.github.label}: ${links.github.href}`,

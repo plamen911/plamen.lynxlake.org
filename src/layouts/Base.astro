@@ -8,9 +8,11 @@ interface Props {
   description: string;
   /** Keep the page out of search indexes (the 404 page). */
   noindex?: boolean;
+  /** The page's own JSON-LD; the profile page's graph when left out. */
+  jsonLd?: string;
 }
 
-const { title, description, noindex = false } = Astro.props;
+const { title, description, noindex = false, jsonLd = siteJsonLd(profile) } = Astro.props;
 // `site` is set in astro.config.mjs; absolute URLs for the canonical link and Open Graph.
 const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL('/og.png', Astro.site).href;
@@ -40,7 +42,7 @@ const analyticsToken: string | undefined = import.meta.env.PUBLIC_CF_ANALYTICS_T
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="alternate" type="text/plain" href="/llms.txt" title="Profile for AI tools" />
     <link rel="alternate" type="text/plain" href="/llms-full.txt" title="Full profile for AI tools" />
-    {!noindex && <script type="application/ld+json" is:inline set:html={siteJsonLd(profile)} />}
+    {!noindex && <script type="application/ld+json" is:inline set:html={jsonLd} />}
     {
       analyticsToken && (
         <script

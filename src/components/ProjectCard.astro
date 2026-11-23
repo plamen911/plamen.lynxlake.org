@@ -22,9 +22,12 @@ const segments = (text: string) => text.split('`').map((value, i) => ({ value, c
     <ul class="tags" aria-label="Technologies">
       {project.tags.map((tag) => <li>{tag}</li>)}
     </ul>
-    {project.links && project.links.length > 0 && (
+    {(project.page || (project.links && project.links.length > 0)) && (
       <ul class="links" aria-label="Links">
-        {project.links.map((l) => (
+        {project.page && (
+          <li><a href={project.page}>{`${project.page.replace(/\//g, '')}: project page`}</a></li>
+        )}
+        {(project.links ?? []).map((l) => (
           <li>
             <a data-click={projectClickKey(project.id, l.href)} href={l.href} target="_blank" rel="noopener noreferrer">{l.label}<span class="ext" aria-hidden="true"> ↗</span></a>
           </li>

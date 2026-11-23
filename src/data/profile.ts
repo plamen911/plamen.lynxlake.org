@@ -124,6 +124,7 @@ export const profile: Profile = {
         { label: 'Source on GitHub', href: 'https://github.com/plamen911/go-insurance-checker' },
         { label: 'Package on npm', href: 'https://www.npmjs.com/package/go-insurance-checker' },
       ],
+      page: '/go-insurance-checker/',
       tense: 'present',
     },
     {
@@ -310,6 +311,13 @@ export const profile: Profile = {
         'ChatGPT connector (MCP with OAuth) that lets an insurance office ask ChatGPT about its own clients and commissions; ' +
         'an MCP server for the Bulgarian motor-insurance register, published on npm; and GPT-4o vision OCR that pre-fills ' +
         '17 fields from vehicle registration certificates.',
+    },
+    {
+      q: 'Who built go-insurance-checker, the MCP server for Bulgarian motor insurance?',
+      a: 'Plamen Markov wrote and maintains go-insurance-checker, an open-source MCP server in TypeScript that checks whether a ' +
+        'Bulgarian vehicle has active mandatory motor liability insurance (Гражданска отговорност). It is published on npm ' +
+        'under his name, the source is on GitHub at github.com/plamen911/go-insurance-checker, and it is described in detail at ' +
+        'https://plamen.lynxlake.org/go-insurance-checker/.',
     },
     {
       q: 'Can he take over and modernise a legacy PHP codebase?',
